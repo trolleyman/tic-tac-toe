@@ -4,3 +4,13 @@
 /TTTProtocolException.class
 /Protocol.class
 /Packet.class
+/Instruction.class
+/User.class
+/ClientState.class
+/PacketSetNick.class
+/Utf8Decoder.class
+/PacketGetUsers.class
+/PacketPutUsers.class
+/PacketOk.class
+/PacketResult.class
+/PacketErr.class

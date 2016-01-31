@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.*;
+import java.util.ArrayList;
 
 public class Server implements Runnable {
 	public static final int MAX_PORT = 49152;
@@ -33,10 +34,11 @@ public class Server implements Runnable {
 		s.run();
 	}
 	
+	private static ArrayList<User> users;
 	private int port;
 	
 	public Server(int _port) {
-		this.port = _port;
+		port = _port;
 	}
 	
 	@Override
@@ -65,6 +67,29 @@ public class Server implements Runnable {
 			}
 		} finally {
 			serverSock.close();
+		}
+	}
+	
+	public static void addUser(User user) {
+		synchronized (users) {
+			users.add(user);
+		}
+	}
+	public static void removeUser(User user) {
+		synchronized (users) {
+			users.remove(user);
+		}
+	}
+	public static void changeUser(User oldUser, User newUser) {
+		synchronized (users) {
+			users.remove(oldUser);
+			users.add(newUser);
+		}
+	}
+	
+	public static final ArrayList<User> getUsers() {
+		synchronized (users) {
+			return new ArrayList<User>(users);
 		}
 	}
 }

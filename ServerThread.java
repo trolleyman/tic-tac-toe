@@ -1,10 +1,15 @@
 import java.io.*;
 import java.net.*;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+
+import sun.awt.CharsetString;
 
 public class ServerThread extends Thread {
 	private Socket sock;
-	private boolean close = false;
+	private boolean close;
+	private ClientState state;
+	private String nick;
 	
 	public ServerThread(Socket _sock) {
 		super();
@@ -14,15 +19,18 @@ public class ServerThread extends Thread {
 	@Override
 	public void run() {
 		try {
+			close = false;
+			state = ClientState.INIT_STATE;
+			
 			sock.setKeepAlive(true);
 			sock.setTcpNoDelay(true);
 			sock.setReuseAddress(false);
 			
-			InputStream in = sock.getInputStream();
+			InputStream  in  = sock.getInputStream();
+			OutputStream out = sock.getOutputStream();
 			
 			while (!close) {
-				byte[] packet = readPacket(in);
-				handlePacket(packet);
+				handlePacket(in, out);
 			}
 		} catch (TTTProtocolException e) {
 			// Problem with the internal connection
@@ -44,54 +52,84 @@ public class ServerThread extends Thread {
 		}
 	}
 	
-	private void readPacket(InputStream in) throws IOException {
-		Packet p = Protocol.readInstruction(in);
-		switch (p) {
-		case HELLO:
-			
-			break;
-		case GET_USERS:
-			
-			break;
-		case PUT_USERS:
-			
-			break;
+	private void handlePacket(InputStream in, OutputStream out) throws IOException {
+		Packet p = readPacket(in);
+		Instruction i = p.getInstruction();
+		
+		// These instructions are allowed at any time:
+		switch (i) {
 		case QUIT:
 			close = true;
 			break;
 		default:
-			throw new TTTProtocolException("Instruction not recognised: " + p);
+			switch (state) {
+			case INIT_STATE:
+				switch (i) {
+				case SET_NICK:
+					setNick(((PacketSetNick) p).getNick());
+					(new PacketOk()).write(out);
+					break;
+				default:
+					throw new TTTProtocolException("Illegal instruction: " + i);
+				}
+				break;
+			case WAITING_STATE:
+				switch (i) {
+				case GET_USERS:
+					(new PacketPutUsers(Server.getUsers())).write(out);
+					break;
+				case PUT_USERS:
+					// Ignore.
+					break;
+				case SET_NICK:
+					setNick(((PacketSetNick) p).getNick());
+					break;
+				default:
+					throw new TTTProtocolException("Illegal instruction: " + i);
+				}
+				break;
+			default:
+				throw new TTTProtocolException("Illegal state: " + state);
+			}
+			break;
 		}
 	}
 	
-	private void handlePacket(byte[] packet) throws IOException {
-		if (packet.length == 0) {
-			throw new TTTProtocolException("Packet length too short: " + packet.length);
-		}
-		byte insLen = packet[0];
-		if (insLen == 0) {
-			throw new TTTProtocolException("Instruction length too short: " + insLen);
-		}
-		if (packet.length - 1 < insLen) {
-			throw new TTTProtocolException("Packet length too short: " + (packet.length - 1));
-		}
-		byte[] ins = Arrays.copyOfRange(packet, 0, insLen);
-		if (ins.equals(Util.QUIT_INSTRUCTION)) {
-			// Handle quit
-			close = true;
-		} else if (ins.equals(Util.GET_CONNECTED_USERS)) {
-			sendUsers();
-		} else {
-			throw new TTTProtocolException("Illegal instruction: " + ins);
+	
+	private Packet readPacket(InputStream in) throws IOException {
+		Packet p = new Packet(in);
+		Instruction i = p.getInstruction();
+		switch (i) {
+		case OK:
+			return new PacketOk(p);
+		case ERR:
+			return new PacketErr(p);
+		case GET_USERS:
+			return p;
+		case PUT_USERS:
+			return new PacketPutUsers(p);
+		case QUIT:
+			return p;
+		case SET_NICK:
+			return new PacketSetNick(p);
+		default:
+			throw new TTTProtocolException("Illegal instruction: " + i);
 		}
 	}
-	
-	// Sends the current set of users to the client.
-	private void sendUsers() throws IOException {
-		OutputStream out = sock.getOutputStream();
-		
-		out.write(Util.PUT_CONNECTED_USERS.length);
-		out.write(Util.PUT_CONNECTED_USERS);
-		
+
+	private void setNick(String newNick) {
+		switch (state) {
+		case INIT_STATE:
+			state = ClientState.WAITING_STATE;
+			nick = newNick;
+			Server.addUser(new User(nick));
+			break;
+		case WAITING_STATE:
+			nick = newNick;
+			Server.changeUser(new User(nick), new User(newNick));
+			break;
+		default:
+			// Don't do anything.
+		}
 	}
 }

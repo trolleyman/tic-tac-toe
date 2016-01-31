@@ -9,4 +9,8 @@ public class TTTProtocolException extends IOException {
 	public TTTProtocolException(String s) {
 		super(s);
 	}
+
+	public TTTProtocolException(String s, Throwable e) {
+		super(s, e);
+	}
 }
