@@ -18,17 +18,19 @@ public class Server implements Runnable {
 	}
 	
 	public static int parsePort(String[] args) {
-		if (args.length != 2) {
+		if (args.length != 1) {
 			printUsageAndExit();
 		}
 		
 		try {
-			int port = Integer.parseUnsignedInt(args[1]);
+			int port = Integer.parseUnsignedInt(args[0]);
 			if (port >= Util.MAX_PORT) {
+				System.err.println("Number greater than " + Util.MAX_PORT + ": " + port);
 				printUsageAndExit();
 			}
 			return port;
 		} catch (NumberFormatException e) {
+			System.err.println("Invalid number: " + args[0]);
 			printUsageAndExit();
 		}
 		return 0; // So compiler doesn't complain
@@ -44,6 +46,7 @@ public class Server implements Runnable {
 	
 	public Server(int _port) {
 		port = _port;
+		users = new ArrayList<User>();
 	}
 	
 	@Override

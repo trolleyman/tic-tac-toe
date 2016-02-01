@@ -52,13 +52,13 @@ public class Client implements Runnable {
 	private boolean close;
 	
 	public Client(String[] args) {
-		if (args.length != 4) {
+		if (args.length != 3) {
 			throw new IllegalArgumentException();
 		}
 		
-		nick = args[1];
-		port = parsePort(args[2]);
-		machineName = args[3];
+		nick = args[0];
+		port = parsePort(args[1]);
+		machineName = args[2];
 		close = false;
 	}
 	
@@ -76,13 +76,14 @@ public class Client implements Runnable {
 			OutputStream os = sock.getOutputStream();
 			InputStream in = sock.getInputStream();
 			
+			System.out.println("Connected to server at " + machineName);
 			(new PacketSetNick(nick)).write(os);
 			expectOkPacket(in);
+			System.out.println("Welcome, " + nick + ".");
 			
 			while (!close) {
-				
+				close = true;
 			}
-			
 		} catch (TTTProtocolException e) {
 			// Problem with the internal connection
 			String msg;

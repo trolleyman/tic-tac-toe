@@ -52,7 +52,11 @@ public class ServerThread extends Thread {
 			}
 			e.printStackTrace(System.err);
 		} catch (IOException e) {
-			System.err.println("Connection had to close");
+			String msg = e.getMessage();
+			if (msg == null) {
+				msg = "";
+			}
+			System.err.println("Connection had to close: " + msg);
 			e.printStackTrace(System.err);
 		} finally {
 			try {
@@ -65,6 +69,10 @@ public class ServerThread extends Thread {
 	
 	private void handlePacket(InputStream in, OutputStream out) throws IOException {
 		Packet p = Packet.readPacket(in);
+		System.out.println("Packet recieved from "
+				+ sock.getInetAddress().getHostName()
+				+ " (" + sock.getInetAddress().getHostAddress() + "): "
+				+ p.toString());
 		Instruction i = p.getInstruction();
 		
 		// These instructions are allowed at any time:
