@@ -1,0 +1,11 @@
+/User.class
+/Instruction.class
+/Packet.class
+/PacketErr.class
+/PacketOk.class
+/PacketPutUsers.class
+/PacketResult.class
+/PacketSetNick.class
+/Util.class
+/ClientState.class
+/TTTProtocolException.class

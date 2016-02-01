@@ -1,3 +1,4 @@
+package shared;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -39,6 +40,27 @@ public class Packet {
 	}
 	public Packet(byte[] in) throws IOException {
 		this(new ByteArrayInputStream(in));
+	}
+	
+	public static Packet readPacket(InputStream in) throws IOException {
+		Packet p = new Packet(in);
+		Instruction i = p.getInstruction();
+		switch (i) {
+		case OK:
+			return new PacketOk(p);
+		case ERR:
+			return new PacketErr(p);
+		case GET_USERS:
+			return p;
+		case PUT_USERS:
+			return new PacketPutUsers(p);
+		case QUIT:
+			return p;
+		case SET_NICK:
+			return new PacketSetNick(p);
+		default:
+			throw new TTTProtocolException("Illegal instruction: " + i);
+		}
 	}
 	
 	public void write(OutputStream out) throws IOException {

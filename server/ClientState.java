@@ -1,3 +1,4 @@
+package server;
 
 public enum ClientState {
 	INIT_STATE,    // Initial state. Nickname is not known.

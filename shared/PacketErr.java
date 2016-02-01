@@ -1,24 +1,28 @@
+package shared;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 public class PacketErr extends PacketResult {
-	Integer errorCode;
+	private final Integer errorCode;
 	
 	public PacketErr() {
 		super(Instruction.ERR);
+		errorCode = null;
+	}
+	public PacketErr(Packet p) {
+		super(p);
 		
+		int i = 0;
 		try {
 			ByteBuffer buf = ByteBuffer.wrap(payload);
 			buf.order(ByteOrder.BIG_ENDIAN);
-			int i = buf.getInt();
-			errorCode = i;
+			i = buf.getInt();
 		} catch (BufferUnderflowException e) {
 			errorCode = null;
+			return;
 		}
-	}
-	protected PacketErr(Packet p) {
-		super(p);
+		errorCode = i;
 	}
 
 	@Override
@@ -35,7 +39,7 @@ public class PacketErr extends PacketResult {
 	 * Returns the error code associated with the packet
 	 * @return Can be null, or even 0!
 	 */
-	public Integer getError() {
+	public final Integer getError() {
 		return errorCode;
 	}
 }

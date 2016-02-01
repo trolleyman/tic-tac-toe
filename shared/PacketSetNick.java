@@ -1,3 +1,4 @@
+package shared;
 import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CodingErrorAction;
@@ -11,11 +12,7 @@ public class PacketSetNick extends Packet {
 		super(p);
 		
 		try {
-			ByteBuffer buf = ByteBuffer.wrap(payload);
-			nick = StandardCharsets.UTF_8.newDecoder()
-				.onMalformedInput(CodingErrorAction.REPORT)
-				.decode(buf)
-				.toString();
+			nick = Util.utf8Decode(payload);
 		} catch (CharacterCodingException e) {
 			throw new TTTProtocolException("Invalid nick: " + new String(payload, StandardCharsets.UTF_8), e);
 		}

@@ -1,4 +1,4 @@
-import java.net.Socket;
+package shared;
 
 public class User {
 	public String nick;

@@ -1,9 +1,14 @@
+package server;
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
 
+import shared.User;
+import shared.Util;
+
+// java Server <port number>
+
 public class Server implements Runnable {
-	public static final int MAX_PORT = 49152;
 	public static void printUsage() {
 		System.err.println("Usage: java Server <port number>");
 	}
@@ -19,7 +24,7 @@ public class Server implements Runnable {
 		
 		try {
 			int port = Integer.parseUnsignedInt(args[1]);
-			if (port >= MAX_PORT) {
+			if (port >= Util.MAX_PORT) {
 				printUsageAndExit();
 			}
 			return port;

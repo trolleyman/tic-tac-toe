@@ -1,8 +1,17 @@
+package server;
 import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
+import shared.Instruction;
+import shared.Packet;
+import shared.PacketErr;
+import shared.PacketOk;
+import shared.PacketPutUsers;
+import shared.PacketSetNick;
+import shared.TTTProtocolException;
+import shared.User;
 import sun.awt.CharsetString;
 
 public class ServerThread extends Thread {
@@ -25,6 +34,7 @@ public class ServerThread extends Thread {
 			sock.setKeepAlive(true);
 			sock.setTcpNoDelay(true);
 			sock.setReuseAddress(false);
+			sock.setSoTimeout(5000);
 			
 			InputStream  in  = sock.getInputStream();
 			OutputStream out = sock.getOutputStream();
@@ -42,7 +52,8 @@ public class ServerThread extends Thread {
 			}
 			e.printStackTrace(System.err);
 		} catch (IOException e) {
-			return;
+			System.err.println("Connection had to close");
+			e.printStackTrace(System.err);
 		} finally {
 			try {
 				sock.close();
@@ -53,7 +64,7 @@ public class ServerThread extends Thread {
 	}
 	
 	private void handlePacket(InputStream in, OutputStream out) throws IOException {
-		Packet p = readPacket(in);
+		Packet p = Packet.readPacket(in);
 		Instruction i = p.getInstruction();
 		
 		// These instructions are allowed at any time:
@@ -66,8 +77,12 @@ public class ServerThread extends Thread {
 			case INIT_STATE:
 				switch (i) {
 				case SET_NICK:
-					setNick(((PacketSetNick) p).getNick());
-					(new PacketOk()).write(out);
+					try {
+						setNick(((PacketSetNick) p).getNick());
+						(new PacketOk()).write(out);
+					} catch (TTTProtocolException e) {
+						(new PacketErr()).write(out);
+					}
 					break;
 				default:
 					throw new TTTProtocolException("Illegal instruction: " + i);
@@ -82,7 +97,12 @@ public class ServerThread extends Thread {
 					// Ignore.
 					break;
 				case SET_NICK:
-					setNick(((PacketSetNick) p).getNick());
+					try {
+						setNick(((PacketSetNick) p).getNick());
+						(new PacketOk()).write(out);
+					} catch (TTTProtocolException e) {
+						(new PacketErr()).write(out);
+					}
 					break;
 				default:
 					throw new TTTProtocolException("Illegal instruction: " + i);
@@ -92,28 +112,6 @@ public class ServerThread extends Thread {
 				throw new TTTProtocolException("Illegal state: " + state);
 			}
 			break;
-		}
-	}
-	
-	
-	private Packet readPacket(InputStream in) throws IOException {
-		Packet p = new Packet(in);
-		Instruction i = p.getInstruction();
-		switch (i) {
-		case OK:
-			return new PacketOk(p);
-		case ERR:
-			return new PacketErr(p);
-		case GET_USERS:
-			return p;
-		case PUT_USERS:
-			return new PacketPutUsers(p);
-		case QUIT:
-			return p;
-		case SET_NICK:
-			return new PacketSetNick(p);
-		default:
-			throw new TTTProtocolException("Illegal instruction: " + i);
 		}
 	}
 
