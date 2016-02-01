@@ -4,11 +4,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.util.ArrayList;
 
 import shared.Instruction;
 import shared.Packet;
+import shared.PacketGetUsers;
+import shared.PacketPutUsers;
 import shared.PacketSetNick;
 import shared.TTTProtocolException;
+import shared.User;
 import shared.Util;
 
 // java Client <user nickname> <port number> <machine name>
@@ -76,13 +80,33 @@ public class Client implements Runnable {
 			OutputStream os = sock.getOutputStream();
 			InputStream in = sock.getInputStream();
 			
-			System.out.println("Connected to server at " + machineName);
+			System.out.println("Connected to server at " + machineName
+					+ " (" + sock.getInetAddress().getHostAddress() + ")");
+			System.out.println("Local port: " + sock.getLocalPort());
+			
 			(new PacketSetNick(nick)).write(os);
 			expectOkPacket(in);
 			System.out.println("Welcome, " + nick + ".");
 			
+			(new PacketGetUsers()).write(os);
+			
+			System.out.println("");
+			Packet p = Packet.readPacket(in);
+			if (!(p instanceof PacketPutUsers)) {
+				throw new TTTProtocolException("Expected PUT_USERS packet, got " + p.getInstruction());
+			}
+			ArrayList<User> users = ((PacketPutUsers) p).getUsers();
+			if (users.size() == 0) {
+				System.out.println("No users connected to server.");
+			} else {
+				System.out.println("Users connected to the server:");
+				for (User user : users) {
+					System.out.println(user.nick);
+				}
+			}
+			
 			while (!close) {
-				close = true;
+				//close = true;
 			}
 		} catch (TTTProtocolException e) {
 			// Problem with the internal connection
@@ -94,7 +118,8 @@ public class Client implements Runnable {
 			}
 			e.printStackTrace(System.err);
 		} catch (IOException e) {
-			System.err.println("Connection had to close");
+			String msg = e.getMessage() == null ? "" : e.getMessage();
+			System.err.println("Could not connect to server at " + machineName + ": " + msg);
 			e.printStackTrace(System.err);
 		} finally {
 			if (sock != null) {

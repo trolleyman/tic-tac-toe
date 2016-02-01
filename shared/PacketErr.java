@@ -10,6 +10,15 @@ public class PacketErr extends PacketResult {
 		super(Instruction.ERR);
 		errorCode = null;
 	}
+	public PacketErr(int errorCode) {
+		super(Instruction.ERR);
+		this.errorCode = errorCode;
+		ByteBuffer buf = ByteBuffer.allocate(4);
+		buf.order(ByteOrder.BIG_ENDIAN);
+		buf.putInt(errorCode);
+		payload = buf.array();
+	}
+	
 	public PacketErr(Packet p) {
 		super(p);
 		

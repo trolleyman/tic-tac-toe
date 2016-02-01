@@ -51,6 +51,7 @@ public class Server implements Runnable {
 	
 	@Override
 	public void run() {
+		System.out.println("Server started on port " + port);
 		while (true) {
 			try {
 				acceptIncoming();
@@ -80,16 +81,19 @@ public class Server implements Runnable {
 	
 	public static void addUser(User user) {
 		synchronized (users) {
+			System.out.println("addUser: " + user.nick);
 			users.add(user);
 		}
 	}
 	public static void removeUser(User user) {
 		synchronized (users) {
+			System.out.println("removeUser: " + user.nick);
 			users.remove(user);
 		}
 	}
 	public static void changeUser(User oldUser, User newUser) {
 		synchronized (users) {
+			System.out.println("changeUser: " + oldUser.nick + " to " + newUser.nick);
 			users.remove(oldUser);
 			users.add(newUser);
 		}

@@ -6,4 +6,9 @@ public class User {
 	public User(String nick) {
 		this.nick = nick;
 	}
+	
+	@Override
+	public boolean equals(Object o) {
+		return o != null && o instanceof User && ((User)o).nick == nick;
+	}
 }

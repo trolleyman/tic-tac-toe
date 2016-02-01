@@ -23,18 +23,25 @@ public class ServerThread extends Thread {
 	public ServerThread(Socket _sock) {
 		super();
 		sock = _sock;
+		close = false;
+		state = ClientState.INIT_STATE;
+		nick = null;
 	}
 	
 	@Override
 	public void run() {
 		try {
+			System.out.println("Connected to client at "
+					+ sock.getInetAddress().getHostName()
+					+ " (" + sock.getInetAddress().getHostAddress() + ":" + sock.getPort() + ")");
+			
 			close = false;
 			state = ClientState.INIT_STATE;
 			
 			sock.setKeepAlive(true);
 			sock.setTcpNoDelay(true);
 			sock.setReuseAddress(false);
-			sock.setSoTimeout(5000);
+			//sock.setSoTimeout(5000);
 			
 			InputStream  in  = sock.getInputStream();
 			OutputStream out = sock.getOutputStream();
@@ -59,6 +66,10 @@ public class ServerThread extends Thread {
 			System.err.println("Connection had to close: " + msg);
 			e.printStackTrace(System.err);
 		} finally {
+			// Remove the nick from the list of connected users
+			if (nick != null)
+				Server.removeUser(new User(nick));
+			
 			try {
 				sock.close();
 			} catch (IOException e) {
@@ -68,11 +79,11 @@ public class ServerThread extends Thread {
 	}
 	
 	private void handlePacket(InputStream in, OutputStream out) throws IOException {
-		Packet p = Packet.readPacket(in);
+		Packet p = new Packet(in);
 		System.out.println("Packet recieved from "
 				+ sock.getInetAddress().getHostName()
-				+ " (" + sock.getInetAddress().getHostAddress() + "): "
-				+ p.toString());
+				+ " (" + sock.getInetAddress().getHostAddress() + ":" + sock.getPort() + "): "
+				+ p.getInstruction());
 		Instruction i = p.getInstruction();
 		
 		// These instructions are allowed at any time:
@@ -86,7 +97,7 @@ public class ServerThread extends Thread {
 				switch (i) {
 				case SET_NICK:
 					try {
-						setNick(((PacketSetNick) p).getNick());
+						setNick(((PacketSetNick) Packet.downcastPacket(p)).getNick());
 						(new PacketOk()).write(out);
 					} catch (TTTProtocolException e) {
 						(new PacketErr()).write(out);
@@ -106,14 +117,14 @@ public class ServerThread extends Thread {
 					break;
 				case SET_NICK:
 					try {
-						setNick(((PacketSetNick) p).getNick());
+						setNick(((PacketSetNick) Packet.downcastPacket(p)).getNick());
 						(new PacketOk()).write(out);
 					} catch (TTTProtocolException e) {
 						(new PacketErr()).write(out);
 					}
 					break;
 				default:
-					throw new TTTProtocolException("Illegal instruction: " + i);
+					//throw new TTTProtocolException("Illegal instruction: " + i);
 				}
 				break;
 			default:
@@ -123,7 +134,10 @@ public class ServerThread extends Thread {
 		}
 	}
 
-	private void setNick(String newNick) {
+	private void setNick(String newNick) throws TTTProtocolException {
+		if (Server.getUsers().contains(new User(newNick))) {
+			throw new TTTProtocolException("User already connected: " + newNick);
+		}
 		switch (state) {
 		case INIT_STATE:
 			state = ClientState.WAITING_STATE;
@@ -135,7 +149,7 @@ public class ServerThread extends Thread {
 			Server.changeUser(new User(nick), new User(newNick));
 			break;
 		default:
-			// Don't do anything.
+			throw new TTTProtocolException("Illegal state: " + state);
 		}
 	}
 }

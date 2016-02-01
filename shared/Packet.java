@@ -27,14 +27,13 @@ public class Packet {
 	
 	public Packet(InputStream in) throws IOException {
 		byte[] bs = new byte[3];
-		BufferedInputStream inBuf = new BufferedInputStream(in);
-		inBuf.read(bs, 0, 3);
+		in.read(bs);
 		ByteBuffer buf = ByteBuffer.wrap(bs);
 		buf.order(ByteOrder.BIG_ENDIAN);
 		ins = readInstruction(buf);
 		int payloadLen = readUShort(buf);
 		payload = new byte[payloadLen];
-		if (inBuf.read(payload) != payloadLen) {
+		if (in.read(payload) != payloadLen) {
 			throw new TTTProtocolException("Unexpected end of stream");
 		}
 	}
@@ -44,6 +43,10 @@ public class Packet {
 	
 	public static Packet readPacket(InputStream in) throws IOException {
 		Packet p = new Packet(in);
+		return downcastPacket(p);
+	}
+	
+	public static Packet downcastPacket(Packet p) throws TTTProtocolException {
 		Instruction i = p.getInstruction();
 		switch (i) {
 		case OK:
@@ -51,7 +54,7 @@ public class Packet {
 		case ERR:
 			return new PacketErr(p);
 		case GET_USERS:
-			return p;
+			return new PacketGetUsers(p);
 		case PUT_USERS:
 			return new PacketPutUsers(p);
 		case QUIT:
