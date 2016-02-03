@@ -1,12 +1,15 @@
 package shared;
-import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+
+import shared.exception.ProtocolException;
+import shared.exception.UnknownInstructionException;
 
 public class Packet {
 	private static final Instruction[] values = Instruction.values();
@@ -25,7 +28,7 @@ public class Packet {
 		this.payload = payload;
 	}
 	
-	public Packet(InputStream in) throws IOException {
+	public Packet(InputStream in) throws IOException, UnknownInstructionException {
 		byte[] bs = new byte[3];
 		in.read(bs);
 		ByteBuffer buf = ByteBuffer.wrap(bs);
@@ -34,19 +37,23 @@ public class Packet {
 		int payloadLen = readUShort(buf);
 		payload = new byte[payloadLen];
 		if (in.read(payload) != payloadLen) {
-			throw new TTTProtocolException("Unexpected end of stream");
+			throw new EOFException();
 		}
 	}
-	public Packet(byte[] in) throws IOException {
+	public Packet(byte[] in) throws IOException, UnknownInstructionException {
 		this(new ByteArrayInputStream(in));
 	}
 	
-	public static Packet readPacket(InputStream in) throws IOException {
-		Packet p = new Packet(in);
+	public static Packet readPacket(InputStream in) throws IOException, ProtocolException {
+		Packet p = null;
+		while (p == null || p.getInstruction() == Instruction.WAIT) {
+			// Loop until a packet other than WAIT is read
+			p = new Packet(in);
+		}
 		return downcastPacket(p);
 	}
 	
-	public static Packet downcastPacket(Packet p) throws TTTProtocolException {
+	public static Packet downcastPacket(Packet p) throws EOFException, ProtocolException {
 		Instruction i = p.getInstruction();
 		switch (i) {
 		case OK:
@@ -57,12 +64,17 @@ public class Packet {
 			return new PacketGetUsers(p);
 		case PUT_USERS:
 			return new PacketPutUsers(p);
-		case QUIT:
-			return p;
 		case SET_NICK:
 			return new PacketSetNick(p);
+		case REQUEST_JOIN:
+			return new PacketRequestJoin(p);
+		case ACCEPT_JOIN_REQUST:
+		case REJECT_JOIN_REQUEST:
+		case QUIT:
+			return p;
+		
 		default:
-			throw new TTTProtocolException("Illegal instruction: " + i);
+			return p;
 		}
 	}
 	
@@ -79,24 +91,24 @@ public class Packet {
 		return buf.array();
 	}
 	
-	private static Instruction readInstruction(ByteBuffer buf) throws TTTProtocolException {
+	private static Instruction readInstruction(ByteBuffer buf) throws EOFException, UnknownInstructionException {
 		try {
 			int i = buf.get();
 			if (i < values.length) {
 				return values[i];
 			} else {
-				throw new TTTProtocolException("Unknown instruction: " + i);
+				throw new UnknownInstructionException(i);
 			}
 		} catch (BufferUnderflowException e) {
-			throw new TTTProtocolException("Unexpected end of stream");
+			throw new EOFException();
 		}
 	}
 	
-	private static int readUShort(ByteBuffer buf) throws TTTProtocolException {
+	private static int readUShort(ByteBuffer buf) throws EOFException {
 		try {
 			return buf.getShort() & 0xFFFF;
 		} catch (BufferUnderflowException e) {
-			throw new TTTProtocolException("Unexpected end of stream");
+			throw new EOFException();
 		}
 	}
 	

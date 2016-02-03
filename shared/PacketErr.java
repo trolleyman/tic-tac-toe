@@ -1,37 +1,22 @@
 package shared;
-import java.nio.BufferUnderflowException;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 
 public class PacketErr extends PacketResult {
-	private final Integer errorCode;
+	private final String error;
 	
 	public PacketErr() {
 		super(Instruction.ERR);
-		errorCode = null;
+		error = null;
 	}
-	public PacketErr(int errorCode) {
+	public PacketErr(String error) {
 		super(Instruction.ERR);
-		this.errorCode = errorCode;
-		ByteBuffer buf = ByteBuffer.allocate(4);
-		buf.order(ByteOrder.BIG_ENDIAN);
-		buf.putInt(errorCode);
-		payload = buf.array();
+		this.error = error;
+		this.payload = Util.utf8EncodeReplace(error);
 	}
 	
 	public PacketErr(Packet p) {
 		super(p);
 		
-		int i = 0;
-		try {
-			ByteBuffer buf = ByteBuffer.wrap(payload);
-			buf.order(ByteOrder.BIG_ENDIAN);
-			i = buf.getInt();
-		} catch (BufferUnderflowException e) {
-			errorCode = null;
-			return;
-		}
-		errorCode = i;
+		error = Util.utf8DecodeReplace(payload);
 	}
 
 	@Override
@@ -45,10 +30,9 @@ public class PacketErr extends PacketResult {
 	}
 	
 	/**
-	 * Returns the error code associated with the packet
-	 * @return Can be null, or even 0!
+	 * Returns the error associated with the packet
 	 */
-	public final Integer getError() {
-		return errorCode;
+	public final String getError() {
+		return error;
 	}
 }

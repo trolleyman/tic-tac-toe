@@ -1,54 +1,66 @@
 package shared;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map.Entry;
+
+import shared.exception.ProtocolException;
 
 public class PacketPutUsers extends Packet {
-	private final ArrayList<User> users;
+	private final HashMap<String, InetSocketAddress> users;
 	
-	public PacketPutUsers(Packet p) throws TTTProtocolException {
+	public PacketPutUsers(Packet p) throws EOFException, ProtocolException {
 		super(p);
 		
 		// Parse payload
 		try {
 			ByteBuffer buf = ByteBuffer.wrap(payload);
 			int usersLen = buf.getInt();
-			ArrayList<User> us = new ArrayList<User>(usersLen);
+			users = new HashMap<String, InetSocketAddress>();
 			for (int i = 0; i < usersLen; i++) {
+				// Get String
 				int nickLen = buf.getInt();
-				byte[] nick = new byte[nickLen];
-				buf.get(nick);
-				try {
-					us.add(new User(Util.utf8Decode(nick)));
-				} catch (CharacterCodingException e) {
-					throw new TTTProtocolException("Nick was not valid utf-8: " + (new String(nick, StandardCharsets.UTF_8)));
-				}
+				byte[] bnick = new byte[nickLen];
+				buf.get(bnick);
+				String nick = Util.assertValidUsername(bnick);
+				
+				// Get SocketAddress
+				int addrLen = buf.getInt();
+				byte[] baddr = new byte[addrLen];
+				buf.get(baddr);
+				String addrString = Util.utf8Decode(baddr);
+				int port = buf.getShort() & 0xFFFF;
+				InetSocketAddress addr = new InetSocketAddress(addrString, port);
+				
+				users.put(nick, addr);
 			}
-			users = us;
+		} catch (CharacterCodingException e) {
+			throw new ProtocolException("Invalid UTF-8");
 		} catch (BufferUnderflowException e) {
-			throw new TTTProtocolException("Unexpected end of stream.");
+			throw new EOFException();
 		}
 	}
-	public PacketPutUsers(final ArrayList<User> users) {
+	public PacketPutUsers(final HashMap<String, InetSocketAddress> users) {
 		super(Instruction.PUT_USERS);
 		this.users = users;
 		ByteArrayOutputStream baos = new ByteArrayOutputStream(users.size() * 16);
 		DataOutputStream os = new DataOutputStream(baos);
 		try {
 			os.writeInt(users.size());
-			for (User user : users) {
-				try {
-					byte[] nick = Util.utf8Encode(user.nick);
-					os.writeInt(nick.length);
-					os.write(nick);
-				} catch (CharacterCodingException e) {
-					throw new TTTProtocolException("Nick was not valid utf-8: " + user.nick);
-				}
+			for (Entry<String, InetSocketAddress> user : users.entrySet()) {
+				os.writeInt(user.getKey().length());
+				os.write(Util.utf8Encode(user.getKey()));
+				
+				String addr = user.getValue().getHostString();
+				os.writeInt(addr.length());
+				os.write(Util.utf8Encode(addr));
+				os.writeShort(user.getValue().getPort());
 			}
 			os.flush();
 		} catch (IOException e) {
@@ -57,7 +69,7 @@ public class PacketPutUsers extends Packet {
 		payload = baos.toByteArray();
 	}
 	
-	public final ArrayList<User> getUsers() {
+	public final HashMap<String, InetSocketAddress> getUsers() {
 		return users;
 	}
 }

@@ -1,14 +1,15 @@
 package server;
-import java.io.*;
-import java.net.*;
-import java.util.ArrayList;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.HashMap;
 
-import shared.User;
 import shared.Util;
 
 // java Server <port number>
 
-public class Server implements Runnable {
+public class Server implements Runnable {	
 	public static void printUsage() {
 		System.err.println("Usage: java Server <port number>");
 	}
@@ -41,12 +42,12 @@ public class Server implements Runnable {
 		s.run();
 	}
 	
-	private static ArrayList<User> users;
-	private int port;
+	private static HashMap<String, InetSocketAddress> usersInfo;
+	private static int port;
 	
 	public Server(int _port) {
 		port = _port;
-		users = new ArrayList<User>();
+		usersInfo = new HashMap<String, InetSocketAddress>();
 	}
 	
 	@Override
@@ -79,29 +80,7 @@ public class Server implements Runnable {
 		}
 	}
 	
-	public static void addUser(User user) {
-		synchronized (users) {
-			System.out.println("addUser: " + user.nick);
-			users.add(user);
-		}
-	}
-	public static void removeUser(User user) {
-		synchronized (users) {
-			System.out.println("removeUser: " + user.nick);
-			users.remove(user);
-		}
-	}
-	public static void changeUser(User oldUser, User newUser) {
-		synchronized (users) {
-			System.out.println("changeUser: " + oldUser.nick + " to " + newUser.nick);
-			users.remove(oldUser);
-			users.add(newUser);
-		}
-	}
-	
-	public static final ArrayList<User> getUsers() {
-		synchronized (users) {
-			return new ArrayList<User>(users);
-		}
+	public static HashMap<String, InetSocketAddress> getUsersInfo() {
+		return usersInfo;
 	}
 }
