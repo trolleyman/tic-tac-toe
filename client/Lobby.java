@@ -6,10 +6,10 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import shared.Packet;
-import shared.PacketGetUsers;
-import shared.PacketPutUsers;
 import shared.exception.ProtocolException;
+import shared.packet.Packet;
+import shared.packet.PacketGetUsers;
+import shared.packet.PacketPutUsers;
 
 public class Lobby implements Runnable {
 	private Socket serverSock = null;

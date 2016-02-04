@@ -7,9 +7,11 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
+import javax.swing.Box;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JTable;
+import javax.swing.border.EmptyBorder;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
 import javax.swing.table.AbstractTableModel;
@@ -19,6 +21,7 @@ public class LobbyViewer implements LobbyListener {
 	private Object usersLock = new Object();
 	private String[][] users;
 	private String[] columnNames = new String[] {"Username", "Address"};
+	private JTable table;
 	private AbstractTableModel tableModel;
 	
 	@SuppressWarnings("serial")
@@ -47,7 +50,7 @@ public class LobbyViewer implements LobbyListener {
 			}
 		};
 		
-		JTable table = new JTable(tableModel);
+		table = new JTable(tableModel);
 		panel.setLayout(new BorderLayout());
 		panel.add(table.getTableHeader(), BorderLayout.NORTH);
 		panel.add(table, BorderLayout.CENTER);
@@ -66,7 +69,10 @@ public class LobbyViewer implements LobbyListener {
 		frame.setSize(300, 300);
 		
 		JPanel panel = createTable();
-		frame.add(panel);
+		panel.setBorder(new EmptyBorder(10, 10, 10, 10));
+		frame.setLayout(new BorderLayout());
+		frame.add(panel, BorderLayout.NORTH);
+		frame.add(Box.createVerticalGlue());
 		frame.setVisible(true);
 	}
 	
@@ -93,12 +99,31 @@ public class LobbyViewer implements LobbyListener {
 				users[i][1] = entries.get(i).getValue().toString();
 			}
 			
+			int newSelection = -1;
+			if (table != null) {
+				int[] selectedRows = table.getSelectedRows();
+				if (selectedRows.length == 1) {
+					int row = selectedRows[0];
+					String oldUser = oldUsers[row][0];
+					
+					for (int i = 0; i < users.length; i++) {
+						if (users[i][0].equalsIgnoreCase(oldUser)) {
+							newSelection = i;
+							break;
+						}
+					}
+				}
+			}
+			
 			if (tableModel != null && !areEqual(users, oldUsers)) {
 				System.out.println("User list changed.");
 				TableModelListener[] listeners = tableModel.getTableModelListeners();
 				TableModelEvent e = new TableModelEvent(tableModel);
 				for (int i = 0; i < listeners.length; i++) {
 					listeners[i].tableChanged(e);
+				}
+				if (newSelection != -1) {
+					table.setRowSelectionInterval(newSelection, newSelection);
 				}
 			}
 		}

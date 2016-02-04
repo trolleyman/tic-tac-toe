@@ -7,15 +7,15 @@ import java.net.Socket;
 import java.util.HashMap;
 
 import shared.Instruction;
-import shared.Packet;
-import shared.PacketErr;
-import shared.PacketOk;
-import shared.PacketPutUsers;
-import shared.PacketSetNick;
 import shared.Util;
 import shared.exception.InvalidUsername;
 import shared.exception.InvalidUsernameException;
 import shared.exception.ProtocolException;
+import shared.packet.Packet;
+import shared.packet.PacketErr;
+import shared.packet.PacketOk;
+import shared.packet.PacketPutUsers;
+import shared.packet.PacketSetNick;
 
 public class ServerThread extends Thread {
 	private Socket sock;

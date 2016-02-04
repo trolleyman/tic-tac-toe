@@ -1,4 +1,4 @@
-package shared;
+package shared.packet;
 import java.io.ByteArrayInputStream;
 import java.io.EOFException;
 import java.io.IOException;
@@ -8,6 +8,7 @@ import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
+import shared.Instruction;
 import shared.exception.ProtocolException;
 import shared.exception.UnknownInstructionException;
 

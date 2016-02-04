@@ -1,4 +1,4 @@
-package shared;
+package shared.packet;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -8,6 +8,9 @@ import java.io.InputStream;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 
+import shared.GameStart;
+import shared.GameState;
+import shared.Instruction;
 import shared.exception.ProtocolException;
 
 public class PacketStart extends Packet {

@@ -1,6 +1,8 @@
-package shared;
+package shared.packet;
 import java.nio.charset.StandardCharsets;
 
+import shared.Instruction;
+import shared.Util;
 import shared.exception.InvalidUsernameException;
 
 public class PacketSetNick extends Packet {

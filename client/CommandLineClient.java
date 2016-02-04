@@ -10,14 +10,14 @@ import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
-import shared.Packet;
-import shared.PacketErr;
-import shared.PacketOk;
-import shared.PacketSetNick;
 import shared.Util;
 import shared.exception.IllegalInstructionException;
 import shared.exception.InvalidUsernameException;
 import shared.exception.ProtocolException;
+import shared.packet.Packet;
+import shared.packet.PacketErr;
+import shared.packet.PacketOk;
+import shared.packet.PacketSetNick;
 
 // java Client <user nickname> <port number> <machine name>
 

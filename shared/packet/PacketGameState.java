@@ -1,4 +1,4 @@
-package shared;
+package shared.packet;
 
 public class PacketGameState {
 	

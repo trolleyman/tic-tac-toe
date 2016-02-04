@@ -1,4 +1,7 @@
-package shared;
+package shared.packet;
+
+import shared.Instruction;
+import shared.Util;
 
 public class PacketErr extends PacketResult {
 	private final String error;

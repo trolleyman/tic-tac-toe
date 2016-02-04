@@ -1,4 +1,7 @@
-package shared;
+package shared.packet;
+
+import shared.Instruction;
+
 public abstract class PacketResult extends Packet {
 	protected PacketResult(Instruction ins) {
 		super(ins);

@@ -1,5 +1,7 @@
-package shared;
+package shared.packet;
 
+import shared.Instruction;
+import shared.Util;
 import shared.exception.InvalidUsernameException;
 
 public class PacketRequestJoin extends Packet {

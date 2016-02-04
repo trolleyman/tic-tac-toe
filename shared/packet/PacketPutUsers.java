@@ -1,4 +1,4 @@
-package shared;
+package shared.packet;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.EOFException;
@@ -10,6 +10,8 @@ import java.nio.charset.CharacterCodingException;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
+import shared.Instruction;
+import shared.Util;
 import shared.exception.ProtocolException;
 
 public class PacketPutUsers extends Packet {

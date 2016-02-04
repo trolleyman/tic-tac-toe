@@ -1,4 +1,6 @@
-package shared;
+package shared.packet;
+
+import shared.Instruction;
 
 public class PacketOk extends PacketResult {
 	public PacketOk() {
