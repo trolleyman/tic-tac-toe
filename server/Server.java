@@ -1,10 +1,10 @@
 package server;
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashMap;
 
+import shared.UserInfo;
 import shared.Util;
 
 // java Server <port number>
@@ -42,12 +42,12 @@ public class Server implements Runnable {
 		s.run();
 	}
 	
-	private static HashMap<String, InetSocketAddress> usersInfo;
+	private static HashMap<String, UserInfo> usersInfo;
 	private static int port;
 	
 	public Server(int _port) {
 		port = _port;
-		usersInfo = new HashMap<String, InetSocketAddress>();
+		usersInfo = new HashMap<String, UserInfo>();
 	}
 	
 	@Override
@@ -80,7 +80,7 @@ public class Server implements Runnable {
 		}
 	}
 	
-	public static HashMap<String, InetSocketAddress> getUsersInfo() {
+	public static HashMap<String, UserInfo> getUsersInfo() {
 		return usersInfo;
 	}
 }

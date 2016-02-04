@@ -6,6 +6,7 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import shared.UserInfo;
 import shared.exception.ProtocolException;
 import shared.packet.Packet;
 import shared.packet.PacketGetUsers;
@@ -13,7 +14,7 @@ import shared.packet.PacketPutUsers;
 
 public class Lobby implements Runnable {
 	private Socket serverSock = null;
-	private HashMap<String, InetSocketAddress> users;
+	private HashMap<String, UserInfo> users;
 	private boolean running = true;
 	private InetSocketAddress serverAddr;
 	private ArrayList<LobbyListener> listeners;
@@ -56,7 +57,7 @@ public class Lobby implements Runnable {
 			}
 			p = Packet.readPacket(serverSock.getInputStream());
 		}
-		HashMap<String, InetSocketAddress> us = ((PacketPutUsers) p).getUsers();
+		HashMap<String, UserInfo> us = ((PacketPutUsers) p).getUsers();
 		synchronized (this) {
 			users = us;
 		}
@@ -102,7 +103,7 @@ public class Lobby implements Runnable {
 		return running;
 	}
 	
-	public HashMap<String, InetSocketAddress> getUsers() {
+	public HashMap<String, UserInfo> getUsers() {
 		synchronized (this) {
 			return users;
 		}

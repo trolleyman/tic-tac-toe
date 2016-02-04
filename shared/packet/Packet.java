@@ -65,8 +65,8 @@ public class Packet {
 			return new PacketGetUsers(p);
 		case PUT_USERS:
 			return new PacketPutUsers(p);
-		case SET_NICK:
-			return new PacketSetNick(p);
+		case SET_USER:
+			return new PacketSetUser(p);
 		case REQUEST_JOIN:
 			return new PacketRequestJoin(p);
 		case ACCEPT_JOIN_REQUST:

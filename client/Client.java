@@ -1,16 +1,22 @@
 package client;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.HashMap;
+import java.net.ServerSocket;
+import java.net.Socket;
 
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 
+import shared.User;
 import shared.Util;
+import shared.exception.InvalidUsernameException;
 import shared.exception.ProtocolException;
+import shared.packet.Packet;
+import shared.packet.PacketSetUser;
 
-public class Client implements LobbyListener, Runnable {
+public class Client implements Runnable {
 	public static void printUsage() {
 		System.err.println("Usage: java Client <user nickname> <port number> <machine name>");
 	}
@@ -64,9 +70,13 @@ public class Client implements LobbyListener, Runnable {
 	}
 	
 	private String nick;
-	private int    port;
+	private int    serverPort;
+	private Socket gameSocket;
+	private int    gamePort;
 	private String machineName;
 	private Lobby  lobby;
+	private InetSocketAddress addr;
+	private LobbyViewer lobbyViewer;
 	
 	public Client(String[] args) throws IOException, ProtocolException {
 		if (args.length != 3) {
@@ -74,20 +84,74 @@ public class Client implements LobbyListener, Runnable {
 		}
 		
 		nick = args[0];
-		port = parsePort(args[1]);
+		serverPort = parsePort(args[1]);
 		machineName = args[2];
 		
-		lobby = new Lobby(new InetSocketAddress(machineName, port));
-		LobbyViewer lobbyViewer = new LobbyViewer(lobby);
+		addr = new InetSocketAddress(machineName, serverPort);
+		if (addr.isUnresolved()) {
+			System.err.println("The hostname " + machineName + " could not be resolved.");
+		}
+		lobby = new Lobby(addr);
+		lobbyViewer = new LobbyViewer(lobby);
+	}
+	
+	public void sendJoinRequest(User opp) {
+		
+	}
+	private static User getJoinRequest() throws IOException {
+		ServerSocket serverSock = new ServerSocket(0);
+		
+		try {
+			while (true) {
+				try {
+					Socket sock = serverSock.accept();
+					
+					Packet p = null;
+					p = Packet.readPacket(sock.getInputStream());
+				} catch (ProtocolException | EOFException e) {
+					
+				} catch (IOException e) {
+					
+				}
+			}
+		} finally {
+			serverSock.close();
+		}
+	}
+	
+	private Socket connect() throws IOException {
+		Socket sock = new Socket(addr.getAddress(), addr.getPort());
+		sock.setKeepAlive(true);
+		sock.setTcpNoDelay(true);
+		sock.setReuseAddress(false);
+		return sock;
 	}
 	
 	@Override
 	public void run() {
-		
-	}
-
-	@Override
-	public void usersChanged(HashMap<String, InetSocketAddress> newUsers) {
-		
+		// Connect to server using nick
+		Socket sock = null;
+		try {
+			sock = connect();
+			(new PacketSetUser(nick)).write(sock.getOutputStream());
+			getJoinRequest();
+		} catch (IOException e) {
+			String msg = e.getMessage();
+			if (msg != null)
+				System.err.println("IO Error: " + msg);
+			System.exit(1);
+		} catch (InvalidUsernameException e) {
+			String msg = e.getMessage();
+			if (msg != null)
+				System.err.println(msg);
+			System.exit(1);
+		} finally {
+			try {
+				if (sock != null)
+					sock.close();
+			} catch (IOException e) {
+				
+			}
+		}
 	}
 }

@@ -1,7 +1,6 @@
 package client;
 
 import java.awt.BorderLayout;
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -15,6 +14,8 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
 import javax.swing.table.AbstractTableModel;
+
+import shared.UserInfo;
 
 public class LobbyViewer implements LobbyListener {
 	private Lobby lobby;
@@ -78,13 +79,13 @@ public class LobbyViewer implements LobbyListener {
 	
 	private void updateUsers() {
 		synchronized (usersLock) {
-			HashMap<String, InetSocketAddress> hmUsers = lobby.getUsers();
-			ArrayList<Entry<String, InetSocketAddress>> entries
-				= new ArrayList<Entry<String, InetSocketAddress>>(hmUsers.entrySet());
+			HashMap<String, UserInfo> hmUsers = lobby.getUsers();
+			ArrayList<Entry<String, UserInfo>> entries
+				= new ArrayList<Entry<String, UserInfo>>(hmUsers.entrySet());
 			
-			entries.sort(new Comparator<Entry<String, InetSocketAddress>>() {
+			entries.sort(new Comparator<Entry<String, UserInfo>>() {
 				@Override
-				public int compare(Entry<String, InetSocketAddress> o1, Entry<String, InetSocketAddress> o2) {
+				public int compare(Entry<String, UserInfo> o1, Entry<String, UserInfo> o2) {
 					// Negative if the first is less than the second.
 					// Sort by usernames
 					return o1.getKey().compareToIgnoreCase(o2.getKey());
@@ -147,7 +148,7 @@ public class LobbyViewer implements LobbyListener {
 	}
 	
 	@Override
-	public void usersChanged(HashMap<String, InetSocketAddress> newUsers) {
+	public void usersChanged(HashMap<String, UserInfo> newUsers) {
 		updateUsers();
 	}
 }

@@ -10,6 +10,7 @@ import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
+import shared.UserInfo;
 import shared.Util;
 import shared.exception.IllegalInstructionException;
 import shared.exception.InvalidUsernameException;
@@ -17,7 +18,7 @@ import shared.exception.ProtocolException;
 import shared.packet.Packet;
 import shared.packet.PacketErr;
 import shared.packet.PacketOk;
-import shared.packet.PacketSetNick;
+import shared.packet.PacketSetUser;
 
 // java Client <user nickname> <port number> <machine name>
 
@@ -91,7 +92,7 @@ public class CommandLineClient implements Runnable {
 	 * @throws ProtocolException 
 	 */
 	private static boolean setNick(Socket sock, String newNick) throws IOException, ProtocolException {
-		(new PacketSetNick(newNick)).write(sock.getOutputStream());
+		(new PacketSetUser(newNick)).write(sock.getOutputStream());
 		Packet p = Packet.readPacket(sock.getInputStream());
 		if (p instanceof PacketOk) {
 			return true;
@@ -103,15 +104,15 @@ public class CommandLineClient implements Runnable {
 		}
 	}
 	
-	private Entry<String, InetSocketAddress> getOpponent(Socket serverSock) throws IOException, ProtocolException {
+	private Entry<String, UserInfo> getOpponent(Socket serverSock) throws IOException, ProtocolException {
 		while (true) {
-			HashMap<String, InetSocketAddress> users = lobby.getUsers();
+			HashMap<String, UserInfo> users = lobby.getUsers();
 			users.remove(nick);
 			if (users.size() == 0) {
 				System.out.println("No users connected to server.");
 			} else {
 				System.out.println("Users connected to the server:");
-				for (Entry<String, InetSocketAddress> user : users.entrySet()) {
+				for (Entry<String, UserInfo> user : users.entrySet()) {
 					System.out.println(String.format("%16s : %s", user.getValue(), user.getKey()));
 				}
 			}
@@ -128,7 +129,7 @@ public class CommandLineClient implements Runnable {
 				System.err.println("Error: '" + opponentName + "' is not a valid username.");
 				continue;
 			}
-			for (Entry<String, InetSocketAddress> user : users.entrySet()) {
+			for (Entry<String, UserInfo> user : users.entrySet()) {
 				if (user.getKey().equals(opponentName)) {
 					System.out.println("Connecting to " + opponentName + "'s game...");
 					return user;
@@ -157,7 +158,7 @@ public class CommandLineClient implements Runnable {
 				}
 				//System.out.println("Welcome, " + nick + ".");
 				
-				Entry<String, InetSocketAddress> opponent = getOpponent(serverSock);
+				Entry<String, UserInfo> opponent = getOpponent(serverSock);
 				serverSock.close();
 				
 				Game g = new Game(opponent.getValue());

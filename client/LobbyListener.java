@@ -1,8 +1,9 @@
 package client;
 
-import java.net.InetSocketAddress;
 import java.util.HashMap;
 
+import shared.UserInfo;
+
 public interface LobbyListener {
-	public void usersChanged(HashMap<String, InetSocketAddress> newUsers);
+	public void usersChanged(HashMap<String, UserInfo> newUsers);
 }

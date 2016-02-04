@@ -1,9 +1,9 @@
 package client;
 
-import java.net.InetSocketAddress;
+import shared.UserInfo;
 
 public class Game {
-	private InetSocketAddress addr;
+	private UserInfo info;
 	
 	private boolean finished = false;
 	private boolean won = false;
@@ -11,8 +11,8 @@ public class Game {
 	private String opponent;
 	
 	// Starts a new game with opponent on the server
-	public Game(InetSocketAddress addr) {
-		this.addr = addr;
+	public Game(UserInfo info) {
+		this.info = info;
 	}
 
 	public boolean isFinished() {

@@ -7,6 +7,7 @@ import java.net.Socket;
 import java.util.HashMap;
 
 import shared.Instruction;
+import shared.UserInfo;
 import shared.Util;
 import shared.exception.InvalidUsername;
 import shared.exception.InvalidUsernameException;
@@ -15,7 +16,7 @@ import shared.packet.Packet;
 import shared.packet.PacketErr;
 import shared.packet.PacketOk;
 import shared.packet.PacketPutUsers;
-import shared.packet.PacketSetNick;
+import shared.packet.PacketSetUser;
 
 public class ServerThread extends Thread {
 	private Socket sock;
@@ -98,11 +99,13 @@ public class ServerThread extends Thread {
 		case PUT_USERS:
 			// Ignore.
 			break;
-		case SET_NICK:
+		case SET_USER:
 			try {
-				String nick = ((PacketSetNick) Packet.downcastPacket(p)).getNick();
-				setNick(nick);
-				System.out.println(nick + " connected from " + Util.sockAddressToString(sock) + ".");
+				PacketSetUser pn = ((PacketSetUser) Packet.downcastPacket(p));
+				String nick = pn.getNick();
+				setUser(nick, pn.getListenAddr());
+				System.out.println(nick + " connected from " + Util.sockAddressToString(sock)
+						+ " and listening from " + Util.sockAddressToString(pn.getListenAddr()));
 				(new PacketOk()).write(out);
 			} catch (InvalidUsernameException e) {
 				(new PacketErr(e.getMessage())).write(out);
@@ -120,8 +123,8 @@ public class ServerThread extends Thread {
 		}
 	}
 
-	private void setNick(String newNick) throws InvalidUsernameException {
-		HashMap<String, InetSocketAddress> users = Server.getUsersInfo();
+	private void setUser(String newNick, InetSocketAddress listenAddr) throws InvalidUsernameException {
+		HashMap<String, UserInfo> users = Server.getUsersInfo();
 		synchronized (users) {
 			if (users.containsKey(newNick)) {
 				throw new InvalidUsernameException(newNick, InvalidUsername.USER_ALREADY_LOGGED_IN);
@@ -130,7 +133,7 @@ public class ServerThread extends Thread {
 			if (users.containsKey(nick)) {
 				users.put(newNick, users.get(nick));
 			} else {
-				users.put(newNick, new InetSocketAddress(sock.getInetAddress(), sock.getPort()));
+				users.put(newNick, new UserInfo(new InetSocketAddress(sock.getInetAddress(), sock.getPort()), listenAddr));
 			}
 			nick = newNick;
 		}
