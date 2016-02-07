@@ -5,16 +5,18 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Random;
 
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 
-import shared.User;
+import shared.Username;
 import shared.Util;
+import shared.exception.EchoException;
 import shared.exception.InvalidUsernameException;
 import shared.exception.ProtocolException;
 import shared.packet.Packet;
-import shared.packet.PacketSetUser;
+import shared.packet.PacketEcho;
 
 public class Client implements Runnable {
 	public static void printUsage() {
@@ -69,52 +71,34 @@ public class Client implements Runnable {
 		}
 	}
 	
-	private String nick;
-	private int    serverPort;
-	private ServerSocket listenSocket;
-	private String machineName;
-	private Lobby  lobby;
+	private Random      rng;
+	private Username    me;
+	private int         serverPort;
+	private String      machineName;
+	private Lobby       lobby;
 	private InetSocketAddress addr;
 	private LobbyViewer lobbyViewer;
 	
 	public Client(String[] args) throws IOException, ProtocolException {
+		this.rng = new Random();
 		if (args.length != 3) {
 			throw new IllegalArgumentException();
 		}
 		
-		nick = args[0];
+		me = new Username(args[0]);
+		if (!me.isUser()) {
+			System.out.println("'" + args[0] + "' is an invalid username.");
+			System.exit(1);
+		}
 		serverPort = parsePort(args[1]);
 		machineName = args[2];
 		
-		listenSocket = new ServerSocket(0);
 		addr = new InetSocketAddress(machineName, serverPort);
 		if (addr.isUnresolved()) {
 			System.err.println("The hostname " + machineName + " could not be resolved.");
 		}
 		lobby = new Lobby(addr);
 		lobbyViewer = new LobbyViewer(lobby);
-	}
-	
-	public void sendJoinRequest(User opp) {
-		
-	}
-	private static User getJoinRequest(ServerSocket serverSock) throws IOException {
-		while (true) {
-			try {
-				Socket sock = serverSock.accept();
-				sock.setSoTimeout(1000);
-				sock.setTcpNoDelay(true);
-				sock.setKeepAlive(true);
-				
-				Packet p = null;
-				p = Packet.readPacket(sock.getInputStream());
-				
-			} catch (ProtocolException | EOFException e) {
-				
-			} catch (IOException e) {
-				
-			}
-		}
 	}
 	
 	private Socket connect() throws IOException {
@@ -124,24 +108,31 @@ public class Client implements Runnable {
 		return sock;
 	}
 	
+	private void echo(Socket sock) throws IOException, ProtocolException {
+		byte[] bytes = new byte[32];
+		rng.nextBytes(bytes);
+		(new PacketEcho(Username.SERVER, me, bytes)).send(sock.getOutputStream());
+		Packet p = Packet.readPacket(sock.getInputStream());
+		if (p instanceof PacketEcho && p.getPayload().equals(bytes)) {
+			return;
+		} else {
+			throw new EchoException(bytes, p.getPayload());
+		}
+	}
+	
 	@Override
 	public void run() {
 		// Connect to server using nick
 		Socket sock = null;
 		try {
 			sock = connect();
-			(new PacketSetUser(nick)).send(sock.getOutputStream());
-			User opp = getJoinRequest(listenSocket);
+			echo(sock);
 			
-		} catch (IOException e) {
+			
+		} catch (IOException | ProtocolException e) {
 			String msg = e.getMessage();
 			if (msg != null)
-				System.err.println("IO Error: " + msg);
-			System.exit(1);
-		} catch (InvalidUsernameException e) {
-			String msg = e.getMessage();
-			if (msg != null)
-				System.err.println(msg);
+				System.err.println("Error: " + msg);
 			System.exit(1);
 		} finally {
 			try {

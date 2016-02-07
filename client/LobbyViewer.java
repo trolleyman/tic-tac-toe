@@ -1,13 +1,9 @@
 package client;
 
 import java.awt.BorderLayout;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Map.Entry;
+import java.util.Arrays;
 
 import javax.swing.Box;
-import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -17,13 +13,12 @@ import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
 import javax.swing.table.AbstractTableModel;
 
-import javafx.scene.layout.Border;
 import shared.Username;
 
 public class LobbyViewer implements LobbyListener {
 	private Lobby lobby;
 	private Object usersLock = new Object();
-	private String[][] users;
+	private Username[] users;
 	private String[] columnNames = new String[] {"Username", "Address"};
 	private JTable table;
 	private AbstractTableModel tableModel;
@@ -35,7 +30,10 @@ public class LobbyViewer implements LobbyListener {
 		tableModel = new AbstractTableModel() {
 			@Override
 			public Object getValueAt(int row, int column) {
-				return users[row][column];
+				if (column == 0)
+					return users[row];
+				else
+					return "";
 			}
 			
 			@Override
@@ -79,7 +77,7 @@ public class LobbyViewer implements LobbyListener {
 	public LobbyViewer(Lobby lobby) {
 		this.lobby = lobby;
 		lobby.addListener(this);
-		users = new String[0][2];
+		users = new Username[0];
 		
 		JFrame frame = new JFrame("Tic-Tac-Toe lobby");
 		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -100,36 +98,19 @@ public class LobbyViewer implements LobbyListener {
 	
 	private void updateUsers() {
 		synchronized (usersLock) {
-			Username[] hmUsers = lobby.getUsers();
-			ArrayList<Entry<String, UserInfo>> entries
-				= new ArrayList<Entry<String, UserInfo>>(hmUsers.entrySet());
-			
-			entries.sort(new Comparator<Entry<String, UserInfo>>() {
-				@Override
-				public int compare(Entry<String, UserInfo> o1, Entry<String, UserInfo> o2) {
-					// Negative if the first is less than the second.
-					// Sort by usernames
-					return o1.getKey().compareToIgnoreCase(o2.getKey());
-				}
-			});
-			
-			int size = entries.size();
-			String[][] oldUsers = users;
-			users = new String[size][2];
-			for (int i = 0; i < size; i++) {
-				users[i][0] = entries.get(i).getKey();
-				users[i][1] = entries.get(i).getValue().toString();
-			}
+			Username[] oldUsers = users;
+			users = lobby.getUsers();
+			Arrays.sort(users);
 			
 			int newSelection = -1;
 			if (table != null) {
 				int[] selectedRows = table.getSelectedRows();
 				if (selectedRows.length == 1) {
 					int row = selectedRows[0];
-					String oldUser = oldUsers[row][0];
+					Username oldUser = oldUsers[row];
 					
 					for (int i = 0; i < users.length; i++) {
-						if (users[i][0].equalsIgnoreCase(oldUser)) {
+						if (users[i].equals(oldUser)) {
 							newSelection = i;
 							break;
 						}
@@ -137,7 +118,7 @@ public class LobbyViewer implements LobbyListener {
 				}
 			}
 			
-			if (tableModel != null && !areEqual(users, oldUsers)) {
+			if (tableModel != null && !users.equals(oldUsers)) {
 				System.out.println("User list changed.");
 				TableModelListener[] listeners = tableModel.getTableModelListeners();
 				TableModelEvent e = new TableModelEvent(tableModel);
@@ -149,23 +130,6 @@ public class LobbyViewer implements LobbyListener {
 				}
 			}
 		}
-	}
-	
-	private boolean areEqual(String[][] o1, String[][] o2) {
-		if (o1.length != o2.length)
-			return false;
-		
-		for (int y = 0; y < o1.length; y++) {
-			if (o1[y].length != o2[y].length) {
-				return false;
-			}
-			for (int x = 0; x < o1[y].length; x++) {
-				if (!o1[y][x].equals(o2[y][x])) {
-					return false;
-				}
-			}
-		}
-		return true;
 	}
 	
 	@Override

@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.HashMap;
 
 import shared.Username;
 import shared.exception.ProtocolException;
@@ -16,15 +15,23 @@ public class Lobby implements Runnable {
 	private Username[] users;
 	private boolean running = true;
 	private ArrayList<LobbyListener> listeners;
+	private InetSocketAddress addr;
 	
-	public Lobby(Username from, Socket sock) throws IOException, ProtocolException {
-		this.sock = sock;
+	public Lobby(InetSocketAddress addr) throws IOException, ProtocolException {
+		this.addr = addr;
+		connect();
 		this.listeners = new ArrayList<LobbyListener>();
 		updateUsers();
 		
 		Thread t = new Thread(this, "Lobby Thread");
 		t.setDaemon(true);
 		t.start();
+	}
+	
+	private void connect() throws IOException {
+		sock = new Socket(addr.getAddress(), addr.getPort());
+		sock.setTcpNoDelay(true);
+		sock.setKeepAlive(true);
 	}
 	
 	public void addListener(LobbyListener listener) {
@@ -39,15 +46,15 @@ public class Lobby implements Runnable {
 	}
 	
 	private void updateUsers() throws IOException, ProtocolException {
-		(new PacketGetUsers()).send(sock.getOutputStream());
+		(new PacketGetUsers(Username.NULL, Username.SERVER)).send(sock.getOutputStream());
 		Packet p = null;
 		while (p == null || !(p instanceof PacketPutUsers)) {
 			if (!running) {
 				return;
 			}
-			p = Packet.readPacket(serverSock.getInputStream());
+			p = Packet.readPacket(sock.getInputStream());
 		}
-		HashMap<String, UserInfo> us = ((PacketPutUsers) p).getUsers();
+		Username[] us = ((PacketPutUsers) p).getUsers();
 		synchronized (this) {
 			users = us;
 		}
@@ -57,8 +64,8 @@ public class Lobby implements Runnable {
 	@Override
 	public void run() {
 		try {
-			if (serverSock == null || serverSock.isClosed())
-				connect(serverAddr);
+			if (sock == null || sock.isClosed())
+				connect();
 			
 			while (running) {
 				updateUsers();
@@ -78,22 +85,22 @@ public class Lobby implements Runnable {
 		} catch (ProtocolException e) {
 			
 		} finally {
-			if (serverSock != null)
+			if (sock != null)
 				try {
-					serverSock.close();
+					sock.close();
 				} catch (IOException e) {
 					// Whatever.
 				} finally {
-					serverSock = null;
+					sock = null;
 				}
 		}
 	}
-	
+
 	public boolean isRunning() {
 		return running;
 	}
 	
-	public HashMap<String, UserInfo> getUsers() {
+	public Username[] getUsers() {
 		synchronized (this) {
 			return users;
 		}

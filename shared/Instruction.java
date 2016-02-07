@@ -3,6 +3,7 @@ package shared;
 public enum Instruction {
 	OK,
 	ERR,
+	ECHO,
 	GET_USERS,
 	PUT_USERS,
 	REQUEST_JOIN,

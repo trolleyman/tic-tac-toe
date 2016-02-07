@@ -60,7 +60,18 @@ public class Util {
 			return addr.getHostName() + " (" + addr.getHostAddress() + ":" + port + ")";
 		}
 	}
-		
+	
+	final private static char[] hexArray = "0123456789ABCDEF".toCharArray();
+	public static String bytesToHex(byte[] bytes) {
+	    char[] hexChars = new char[bytes.length * 2];
+	    for (int j = 0; j < bytes.length; j++) {
+	        int v = bytes[j] & 0xFF;
+	        hexChars[j * 2] = hexArray[v >>> 4];
+	        hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+	    }
+	    return new String(hexChars);
+	}
+	
 	public static String bytesToString(byte[] b) {
 		StringBuilder build = new StringBuilder(b.length);
 		build.append(Character.toChars(b[0])[0]);
@@ -138,6 +149,8 @@ public class Util {
 	public static void assertValidUsername(String nick) throws InvalidUsernameException {
 		if (nick.length() >= 32) {
 			throw new InvalidUsernameException(nick, InvalidUsername.LENGTH);
+		} else if (nick.equals(" ")) {
+			// It's fine - it's the server
 		} else {
 			for (int i = 0; i < nick.length(); i++) {
 				if (Character.isWhitespace(nick.charAt(i))) {

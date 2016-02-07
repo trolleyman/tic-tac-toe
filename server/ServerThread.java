@@ -88,7 +88,7 @@ public class ServerThread extends Thread {
 	}
 	
 	private void handlePacket(InputStream in, OutputStream out) throws IOException, ProtocolException {
-		Packet p = new Packet(in);
+		Packet p = Packet.readPacket(in);
 		//System.out.println("Packet recieved from " + Util.sockAddressToString(sock) + ": " + p.getInstruction());
 		Instruction i = p.getInstruction();
 		
@@ -100,9 +100,10 @@ public class ServerThread extends Thread {
 		if (p.getFrom().isServer()) {
 			(new PacketErr(Username.SERVER, p.getFrom(), "A server cannot connect to another server")).send(out);
 			(new Packet(Instruction.QUIT, Username.SERVER, p.getFrom())).send(out);
+			return;
 		}
 		
-		if (nick == null) {
+		if (nick == null && !p.getFrom().isNull()) {
 			HashMap<Username, ServerThread> users = Server.getUsers();
 			synchronized (users) {
 				if (users.containsKey(p.getFrom())) {
@@ -115,7 +116,7 @@ public class ServerThread extends Thread {
 			Server.registerUsername(nick, this);
 		}
 		
-		if (!p.getFrom().equals(nick)) {
+		if ((nick == null && p.getFrom().isNull()) || !p.getFrom().equals(nick)) {
 			(new PacketErr(Username.SERVER, p.getFrom(),
 					"Only " + nick.getString() + " can send packets on this socket. Got " + p.getFrom().getString()
 					)).send(out);
@@ -126,7 +127,7 @@ public class ServerThread extends Thread {
 			try {
 				Server.forwardPacket(p);
 			} catch (UserNotConnectedException e) {
-				(new PacketErr(Username.SERVER, nick, e.getMessage())).send(out);
+				(new PacketErr(Username.SERVER, p.getFrom(), e.getMessage())).send(out);
 			}
 			return;
 		}
@@ -137,7 +138,7 @@ public class ServerThread extends Thread {
 			close = true;
 			break;
 		case GET_USERS:
-			(new PacketPutUsers(Username.SERVER, nick, Server.getUsersArray())).send(out);
+			(new PacketPutUsers(Username.SERVER, p.getFrom(), Server.getUsersArray())).send(out);
 			break;
 		case OK:
 		case ERR:
@@ -150,7 +151,7 @@ public class ServerThread extends Thread {
 		case REQUEST_JOIN:
 		case START:
 		default:
-			(new PacketErr(Username.SERVER, nick, "Illegal instruction: " + i)).send(out);
+			(new PacketErr(Username.SERVER, p.getFrom(), "Illegal instruction: " + i)).send(out);
 		}
 	}
 	

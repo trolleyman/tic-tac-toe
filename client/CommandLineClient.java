@@ -7,10 +7,12 @@ import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
-import shared.UserInfo;
+import shared.Username;
 import shared.Util;
 import shared.exception.IllegalInstructionException;
 import shared.exception.InvalidUsernameException;
@@ -18,7 +20,6 @@ import shared.exception.ProtocolException;
 import shared.packet.Packet;
 import shared.packet.PacketErr;
 import shared.packet.PacketOk;
-import shared.packet.PacketSetUser;
 
 // java Client <user nickname> <port number> <machine name>
 
@@ -82,37 +83,17 @@ public class CommandLineClient implements Runnable {
 		return sock;
 	}
 	
-	/**
-	 * Sets a new nickname for the server to know us by.
-	 * @param sock
-	 * @param newNick the new nickname for the server to know us by
-	 * @return true if all is well, false if not.
-	 * @throws IOException
-	 * @throws ProtocolException 
-	 */
-	private static boolean setNick(Socket sock, String newNick) throws IOException, ProtocolException {
-		(new PacketSetUser(newNick)).send(sock.getOutputStream());
-		Packet p = Packet.readPacket(sock.getInputStream());
-		if (p instanceof PacketOk) {
-			return true;
-		} else if (p instanceof PacketErr) {
-			//System.err.println("Error: " + ((PacketErr) p).getError());
-			return false;
-		} else {
-			throw new IllegalInstructionException(p.getInstruction());
-		}
-	}
-	
-	private Entry<String, UserInfo> getOpponent(Socket serverSock) throws IOException, ProtocolException {
+	private Username getOpponent(Socket serverSock) throws IOException, ProtocolException {
 		while (true) {
-			HashMap<String, UserInfo> users = lobby.getUsers();
+			
+			ArrayList<Username> users = new ArrayList<Username>(Arrays.asList(lobby.getUsers()));
 			users.remove(nick);
 			if (users.size() == 0) {
 				System.out.println("No users connected to server.");
 			} else {
 				System.out.println("Users connected to the server:");
-				for (Entry<String, UserInfo> user : users.entrySet()) {
-					System.out.println(String.format("%16s : %s", user.getValue(), user.getKey()));
+				for (Username user : users) {
+					System.out.println(String.format("%s", user));
 				}
 			}
 			
@@ -128,8 +109,8 @@ public class CommandLineClient implements Runnable {
 				System.err.println("Error: '" + opponentName + "' is not a valid username.");
 				continue;
 			}
-			for (Entry<String, UserInfo> user : users.entrySet()) {
-				if (user.getKey().equals(opponentName)) {
+			for (Username user : users) {
+				if (user.equals(opponentName)) {
 					System.out.println("Connecting to " + opponentName + "'s game...");
 					return user;
 				}
@@ -141,32 +122,29 @@ public class CommandLineClient implements Runnable {
 	@SuppressWarnings("resource")
 	@Override
 	public void run() {
-		Socket serverSock = null;
+		Socket sock = null;
 		try {
 			while (true) {
-				if (serverSock == null || serverSock.isClosed())
-					serverSock = connect();
+				if (sock == null || sock.isClosed())
+					sock = connect();
 				
-				lobby = new Lobby(new InetSocketAddress(serverSock.getInetAddress(), serverSock.getPort()));
+				lobby = new Lobby(new InetSocketAddress(sock.getInetAddress(), sock.getPort()));
 				
-				System.out.println("Connected to server at " + Util.sockAddressToString(serverSock));
+				System.out.println("Connected to server at " + Util.sockAddressToString(sock));
 				System.out.println("Type quit to exit");
 				
-				if (!setNick(serverSock, nick)) {
-					System.exit(1);
-				}
 				//System.out.println("Welcome, " + nick + ".");
 				
-				Entry<String, UserInfo> opponent = getOpponent(serverSock);
-				serverSock.close();
+				Username opponent = getOpponent(sock);
 				
-				Game g = new Game(opponent.getValue());
-				System.out.println("Connected to " + opponent.getKey() + " in a game of tic-tac-toe.");
+				System.out.println("Connected to " + opponent + " in a game of tic-tac-toe.");
 				//while (!g.isFinished()) {
 				//	g.step();
 				//}
 				
-				System.out.println("Game " + (g.hasWon() ? "won!" : "lost."));
+				System.out.println("Finished.");
+				
+				//System.out.println("Game " + (g.hasWon() ? "won!" : "lost."));
 				int c;
 				boolean anotherRound;
 				while (true) {
@@ -201,9 +179,9 @@ public class CommandLineClient implements Runnable {
 			System.err.println("IO Error: " + msg);
 			e.printStackTrace(System.err);
 		} finally {
-			if (serverSock != null) {
+			if (sock != null) {
 				try {
-					serverSock.close();
+					sock.close();
 				} catch (IOException e) {
 					// Whatever man, just let me leave.
 				}
