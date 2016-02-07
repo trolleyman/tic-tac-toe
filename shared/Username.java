@@ -4,7 +4,7 @@ import java.util.Locale;
 
 import shared.exception.InvalidUsernameException;
 
-public class Username {
+public class Username implements Comparable<Username> {
 	static {
 		try {
 			SERVER = new Username(" ");
@@ -38,6 +38,9 @@ public class Username {
 	public String getString() {
 		return name;
 	}
+	public String getLowerCase() {
+		return lowerCaseName;
+	}
 	
 	/**
 	 * If the username is just a simple username representing a client.
@@ -55,7 +58,9 @@ public class Username {
 	
 	@Override
 	public String toString() {
-		return getString();
+		if (isNull())        return "NULL";
+		else if (isServer()) return "SERVER";
+		else                 return getString();
 	}
 	
 	@Override
@@ -66,7 +71,12 @@ public class Username {
 	@Override
 	public boolean equals(Object o) {
 		return o != null &&
-		     ((o instanceof Username && ((Username) o).getString().equalsIgnoreCase(name))
-		   || (o instanceof String && ((String) o).equalsIgnoreCase(name)));
+		     ((o instanceof Username && ((Username) o).getLowerCase().equalsIgnoreCase(lowerCaseName))
+		   || (o instanceof String && ((String) o).equalsIgnoreCase(lowerCaseName)));
+	}
+	
+	@Override
+	public int compareTo(Username o) {
+		return o.getLowerCase().compareToIgnoreCase(lowerCaseName);
 	}
 }

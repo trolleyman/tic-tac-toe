@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import shared.Username;
 import shared.exception.ProtocolException;
@@ -12,12 +13,14 @@ import shared.packet.PacketPutUsers;
 
 public class Lobby implements Runnable {
 	private Socket sock;
-	private Username[] users;
+	private ArrayList<Username> users;
 	private boolean running = true;
 	private ArrayList<LobbyListener> listeners;
 	private InetSocketAddress addr;
+	private Username me;
 	
-	public Lobby(InetSocketAddress addr) throws IOException, ProtocolException {
+	public Lobby(Username me, InetSocketAddress addr) throws IOException, ProtocolException {
+		this.me = me;
 		this.addr = addr;
 		connect();
 		this.listeners = new ArrayList<LobbyListener>();
@@ -54,7 +57,8 @@ public class Lobby implements Runnable {
 			}
 			p = Packet.readPacket(sock.getInputStream());
 		}
-		Username[] us = ((PacketPutUsers) p).getUsers();
+		ArrayList<Username> us = new ArrayList<>(Arrays.asList(((PacketPutUsers) p).getUsers()));
+		us.remove(me);
 		synchronized (this) {
 			users = us;
 		}
@@ -100,7 +104,7 @@ public class Lobby implements Runnable {
 		return running;
 	}
 	
-	public Username[] getUsers() {
+	public ArrayList<Username> getUsers() {
 		synchronized (this) {
 			return users;
 		}

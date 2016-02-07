@@ -32,12 +32,11 @@ public class Util {
 		return (byte) i;
 	}
 	public static int readUShort(InputStream in) throws IOException {
-		ByteBuffer buf = ByteBuffer.allocate(4);
+		ByteBuffer buf = ByteBuffer.allocate(2);
 		buf.order(ByteOrder.BIG_ENDIAN);
 		buf.put(Util.read(in));
 		buf.put(Util.read(in));
-		buf.put(Util.read(in));
-		buf.put(Util.read(in));
+		buf.position(0);
 		return buf.getShort() & 0xFFFF;
 	}
 	public static void readBytes(InputStream in, byte[] bytes) throws IOException {
@@ -158,5 +157,8 @@ public class Util {
 				}
 			}
 		}
+	}
+	public static boolean isDebug() {
+		return false;
 	}
 }

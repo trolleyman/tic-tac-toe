@@ -44,7 +44,7 @@ public class Packet {
 		int toLen = Util.readUShort(in);
 		byte[] toBytes = new byte[toLen];
 		Util.readBytes(in, toBytes);
-		this.from = new Username(toBytes);
+		this.to = new Username(toBytes);
 		
 		int payloadLen = Util.readUShort(in);
 		payload = new byte[payloadLen];
@@ -74,6 +74,8 @@ public class Packet {
 			return new PacketPutUsers(p);
 		case REQUEST_JOIN:
 			return new PacketRequestJoin(p);
+		case ECHO:
+			return new PacketEcho(p);
 		case GET_USERS:
 		case ACCEPT_JOIN_REQUST:
 		case REJECT_JOIN_REQUEST:
@@ -81,6 +83,8 @@ public class Packet {
 			return p;
 		
 		default:
+			System.err.println("Error: Unknown Instruction: " + p.getInstruction());
+			System.err.println(" at Packet.java:86");
 			return p;
 		}
 	}
@@ -100,6 +104,7 @@ public class Packet {
 		buf.put(to.getBytes());
 		buf.putShort((short) payload.length);
 		buf.put(payload);
+		buf.position(0);
 		return buf.array();
 	}
 	

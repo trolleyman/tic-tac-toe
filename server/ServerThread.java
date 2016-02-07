@@ -8,9 +8,11 @@ import java.util.LinkedList;
 
 import shared.Instruction;
 import shared.Username;
+import shared.Util;
 import shared.exception.ProtocolException;
 import shared.exception.UserNotConnectedException;
 import shared.packet.Packet;
+import shared.packet.PacketEcho;
 import shared.packet.PacketErr;
 import shared.packet.PacketPutUsers;
 
@@ -41,15 +43,8 @@ public class ServerThread extends Thread {
 			OutputStream out = sock.getOutputStream();
 			
 			while (!close) {
-				if (in.available() > 0) {
-					handlePacket(in, out);
-				} else {
-					synchronized (packetQueue) {
-						while (packetQueue.size() > 0) {
-							packetQueue.pop().send(out);
-						}
-					}
-				}
+				handlePacket(in, out);
+				
 				try {
 					Thread.sleep(10);
 				} catch (InterruptedException e) {
@@ -89,7 +84,15 @@ public class ServerThread extends Thread {
 	
 	private void handlePacket(InputStream in, OutputStream out) throws IOException, ProtocolException {
 		Packet p = Packet.readPacket(in);
-		//System.out.println("Packet recieved from " + Util.sockAddressToString(sock) + ": " + p.getInstruction());
+		
+		if (Util.isDebug()) {
+			String payloadMsg = "";
+			if (p.getPayload().length > 0)
+				payloadMsg = " - 0x" + Util.bytesToHex(p.getPayload());
+			System.out.println("Packet recieved from " + p.getFrom() + " to " + p.getTo()
+				+ ": " + p.getInstruction() + payloadMsg);
+		}
+		
 		Instruction i = p.getInstruction();
 		
 		if (i == Instruction.QUIT) {
@@ -108,19 +111,25 @@ public class ServerThread extends Thread {
 			synchronized (users) {
 				if (users.containsKey(p.getFrom())) {
 					(new PacketErr(Username.SERVER, p.getFrom(), "Username already taken")).send(out);
+					return;
 				} else {
 					users.put(p.getFrom(), this);
 				}
 			}
 			nick = p.getFrom();
+			Thread.currentThread().setName("ServerThread: " + nick.toString());
+			System.out.println(nick.getString() + " connected.");
 			Server.registerUsername(nick, this);
 		}
 		
-		if ((nick == null && p.getFrom().isNull()) || !p.getFrom().equals(nick)) {
-			(new PacketErr(Username.SERVER, p.getFrom(),
-					"Only " + nick.getString() + " can send packets on this socket. Got " + p.getFrom().getString()
-					)).send(out);
-			return;
+		if (!(nick == null)) {
+			if (!p.getFrom().isNull() && !p.getFrom().equals(nick)) {
+				(new PacketErr(Username.SERVER, p.getFrom(),
+						"Only " + nick.getString() + " can send packets on this socket."
+								+ " Got " + p.getFrom().getString()
+						)).send(out);
+				return;
+			}
 		}
 		
 		if (!p.getTo().isServer()) {
@@ -139,6 +148,9 @@ public class ServerThread extends Thread {
 			break;
 		case GET_USERS:
 			(new PacketPutUsers(Username.SERVER, p.getFrom(), Server.getUsersArray())).send(out);
+			break;
+		case ECHO:
+			(new PacketEcho(Username.SERVER, p.getFrom(), p.getPayload())).send(out);;
 			break;
 		case OK:
 		case ERR:

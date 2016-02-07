@@ -63,7 +63,7 @@ public class Server implements Runnable {
 	}
 	public static Username[] getUsersArray() {
 		synchronized (users) {
-			return (Username[]) users.keySet().toArray();
+			return users.keySet().toArray(new Username[users.size()]);
 		}
 	}
 	

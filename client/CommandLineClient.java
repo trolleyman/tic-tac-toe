@@ -48,7 +48,7 @@ public class CommandLineClient implements Runnable {
 		try {
 			CommandLineClient c = new CommandLineClient(args);
 			c.run();
-		} catch (IllegalArgumentException e) {
+		} catch (IllegalArgumentException | InvalidUsernameException e) {
 			String msg = e.getMessage();
 			if (msg != null)
 				System.err.println(msg);
@@ -56,18 +56,18 @@ public class CommandLineClient implements Runnable {
 		}
 	}
 	
-	private String  nick;
-	private int     port;
-	private String  machineName;
-	private boolean close;
-	private Lobby   lobby;
+	private Username me;
+	private int      port;
+	private String   machineName;
+	private boolean  close;
+	private Lobby    lobby;
 	
-	public CommandLineClient(String[] args) {
+	public CommandLineClient(String[] args) throws InvalidUsernameException {
 		if (args.length != 3) {
 			throw new IllegalArgumentException();
 		}
 		
-		nick = args[0];
+		me = new Username(args[0]);
 		port = parsePort(args[1]);
 		machineName = args[2];
 		close = false;
@@ -85,9 +85,7 @@ public class CommandLineClient implements Runnable {
 	
 	private Username getOpponent(Socket serverSock) throws IOException, ProtocolException {
 		while (true) {
-			
-			ArrayList<Username> users = new ArrayList<Username>(Arrays.asList(lobby.getUsers()));
-			users.remove(nick);
+			ArrayList<Username> users = lobby.getUsers();
 			if (users.size() == 0) {
 				System.out.println("No users connected to server.");
 			} else {
@@ -128,7 +126,7 @@ public class CommandLineClient implements Runnable {
 				if (sock == null || sock.isClosed())
 					sock = connect();
 				
-				lobby = new Lobby(new InetSocketAddress(sock.getInetAddress(), sock.getPort()));
+				lobby = new Lobby(me, new InetSocketAddress(sock.getInetAddress(), sock.getPort()));
 				
 				System.out.println("Connected to server at " + Util.sockAddressToString(sock));
 				System.out.println("Type quit to exit");

@@ -1,7 +1,11 @@
 package client;
 
 import java.awt.BorderLayout;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 
 import javax.swing.Box;
 import javax.swing.JButton;
@@ -15,10 +19,10 @@ import javax.swing.table.AbstractTableModel;
 
 import shared.Username;
 
-public class LobbyViewer implements LobbyListener {
+public class LobbyViewer implements LobbyListener, WindowListener {
 	private Lobby lobby;
 	private Object usersLock = new Object();
-	private Username[] users;
+	private ArrayList<Username> users;
 	private String[] columnNames = new String[] {"Username", "Address"};
 	private JTable table;
 	private AbstractTableModel tableModel;
@@ -31,14 +35,14 @@ public class LobbyViewer implements LobbyListener {
 			@Override
 			public Object getValueAt(int row, int column) {
 				if (column == 0)
-					return users[row];
+					return users.get(row);
 				else
 					return "";
 			}
 			
 			@Override
 			public int getRowCount() {
-				return users.length;
+				return users.size();
 			}
 			
 			@Override
@@ -77,11 +81,12 @@ public class LobbyViewer implements LobbyListener {
 	public LobbyViewer(Lobby lobby) {
 		this.lobby = lobby;
 		lobby.addListener(this);
-		users = new Username[0];
+		users = new ArrayList<Username>();
 		
 		JFrame frame = new JFrame("Tic-Tac-Toe lobby");
 		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		frame.setSize(300, 300);
+		frame.addWindowListener(this);
 		
 		JPanel mainPanel = new JPanel();
 		JPanel tablePanel = createTable();
@@ -98,19 +103,19 @@ public class LobbyViewer implements LobbyListener {
 	
 	private void updateUsers() {
 		synchronized (usersLock) {
-			Username[] oldUsers = users;
+			ArrayList<Username> oldUsers = users;
 			users = lobby.getUsers();
-			Arrays.sort(users);
+			users.sort(null);
 			
 			int newSelection = -1;
 			if (table != null) {
 				int[] selectedRows = table.getSelectedRows();
 				if (selectedRows.length == 1) {
 					int row = selectedRows[0];
-					Username oldUser = oldUsers[row];
+					Username oldUser = oldUsers.get(row);
 					
-					for (int i = 0; i < users.length; i++) {
-						if (users[i].equals(oldUser)) {
+					for (int i = 0; i < users.size(); i++) {
+						if (users.get(i).equals(oldUser)) {
 							newSelection = i;
 							break;
 						}
@@ -133,7 +138,25 @@ public class LobbyViewer implements LobbyListener {
 	}
 	
 	@Override
-	public void usersChanged(Username[] newUsers) {
+	public void usersChanged(ArrayList<Username> newUsers) {
 		updateUsers();
 	}
+
+	@Override
+	public void windowClosed(WindowEvent e) {
+		System.exit(0);
+	}
+
+	@Override
+	public void windowClosing(WindowEvent e) {}
+	@Override
+	public void windowActivated(WindowEvent e) {}
+	@Override
+	public void windowDeactivated(WindowEvent e) {}
+	@Override
+	public void windowDeiconified(WindowEvent e) {}
+	@Override
+	public void windowIconified(WindowEvent e) {}
+	@Override
+	public void windowOpened(WindowEvent e) {}
 }

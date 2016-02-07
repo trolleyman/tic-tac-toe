@@ -1,9 +1,7 @@
 package client;
 
-import java.io.EOFException;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Random;
 
@@ -13,10 +11,11 @@ import javax.swing.UnsupportedLookAndFeelException;
 import shared.Username;
 import shared.Util;
 import shared.exception.EchoException;
-import shared.exception.InvalidUsernameException;
+import shared.exception.IllegalInstructionException;
 import shared.exception.ProtocolException;
 import shared.packet.Packet;
 import shared.packet.PacketEcho;
+import shared.packet.PacketErr;
 
 public class Client implements Runnable {
 	public static void printUsage() {
@@ -64,6 +63,9 @@ public class Client implements Runnable {
 			String msg = e.getMessage();
 			if (msg != null)
 				System.err.println("IO Error: " + msg);
+			else
+				System.err.println("IO Error occured. The client has to close.");
+			e.printStackTrace(System.err);
 		} catch (ProtocolException e) {
 			String msg = e.getMessage();
 			if (msg != null)
@@ -97,7 +99,7 @@ public class Client implements Runnable {
 		if (addr.isUnresolved()) {
 			System.err.println("The hostname " + machineName + " could not be resolved.");
 		}
-		lobby = new Lobby(addr);
+		lobby = new Lobby(me, addr);
 		lobbyViewer = new LobbyViewer(lobby);
 	}
 	
@@ -111,11 +113,13 @@ public class Client implements Runnable {
 	private void echo(Socket sock) throws IOException, ProtocolException {
 		byte[] bytes = new byte[32];
 		rng.nextBytes(bytes);
-		(new PacketEcho(Username.SERVER, me, bytes)).send(sock.getOutputStream());
+		(new PacketEcho(me, Username.SERVER, bytes)).send(sock.getOutputStream());
 		Packet p = Packet.readPacket(sock.getInputStream());
-		if (p instanceof PacketEcho && p.getPayload().equals(bytes)) {
-			return;
-		} else {
+		if (p instanceof PacketErr) {
+			throw new ProtocolException(((PacketErr) p).getError());
+		} else if (!(p instanceof PacketEcho)) {
+			throw new IllegalInstructionException(p.getInstruction());
+		} else if (!((PacketEcho) p).payloadEquals(bytes)) {
 			throw new EchoException(bytes, p.getPayload());
 		}
 	}
@@ -127,7 +131,9 @@ public class Client implements Runnable {
 		try {
 			sock = connect();
 			echo(sock);
-			
+			while (true) {
+				
+			}
 			
 		} catch (IOException | ProtocolException e) {
 			String msg = e.getMessage();
