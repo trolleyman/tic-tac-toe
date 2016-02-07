@@ -31,14 +31,18 @@ public class Packet {
 	
 	public Packet(InputStream in) throws IOException, UnknownInstructionException {
 		byte[] bs = new byte[3];
-		in.read(bs);
+		if (in.read(bs) == -1) {
+			throw new EOFException("Input Stream has closed.");
+		}
 		ByteBuffer buf = ByteBuffer.wrap(bs);
 		buf.order(ByteOrder.BIG_ENDIAN);
 		ins = readInstruction(buf);
 		int payloadLen = readUShort(buf);
 		payload = new byte[payloadLen];
-		if (in.read(payload) != payloadLen) {
-			throw new EOFException();
+		int read = in.read(payload);
+		if (read != payloadLen) {
+			throw new EOFException("Packet (" + ins + ") did not have the correct length (got "
+					+ payloadLen + ", expected " + read + ")");
 		}
 	}
 	public Packet(byte[] in) throws IOException, UnknownInstructionException {

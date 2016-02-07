@@ -77,7 +77,6 @@ public class CommandLineClient implements Runnable {
 		
 		sock.setKeepAlive(true);
 		sock.setTcpNoDelay(true);
-		sock.setReuseAddress(false);
 		sock.setSoTimeout(5000);
 		
 		return sock;
@@ -200,7 +199,7 @@ public class CommandLineClient implements Runnable {
 		} catch (IOException e) {
 			String msg = e.getMessage() == null ? "" : e.getMessage();
 			System.err.println("IO Error: " + msg);
-			//e.printStackTrace(System.err);
+			e.printStackTrace(System.err);
 		} finally {
 			if (serverSock != null) {
 				try {

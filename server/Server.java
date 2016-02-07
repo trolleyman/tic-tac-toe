@@ -76,7 +76,8 @@ public class Server implements Runnable {
 				t.start();
 			}
 		} finally {
-			serverSock.close();
+			if (serverSock != null)
+				serverSock.close();
 		}
 	}
 	

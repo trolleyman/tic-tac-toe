@@ -37,7 +37,6 @@ public class ServerThread extends Thread {
 			
 			sock.setKeepAlive(true);
 			sock.setTcpNoDelay(true);
-			sock.setReuseAddress(false);
 			//sock.setSoTimeout(5000);
 			
 			InputStream  in  = sock.getInputStream();
@@ -112,9 +111,9 @@ public class ServerThread extends Thread {
 			}
 			break;
 		case ACCEPT_JOIN_REQUST:
+		case REJECT_JOIN_REQUEST:
 		case ERR:
 		case OK:
-		case REJECT_JOIN_REQUEST:
 		case REQUEST_JOIN:
 		case START:
 		case WAIT:

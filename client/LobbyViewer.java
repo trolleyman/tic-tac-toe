@@ -7,6 +7,8 @@ import java.util.HashMap;
 import java.util.Map.Entry;
 
 import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JTable;
@@ -15,6 +17,7 @@ import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
 import javax.swing.table.AbstractTableModel;
 
+import javafx.scene.layout.Border;
 import shared.UserInfo;
 
 public class LobbyViewer implements LobbyListener {
@@ -26,7 +29,7 @@ public class LobbyViewer implements LobbyListener {
 	private AbstractTableModel tableModel;
 	
 	@SuppressWarnings("serial")
-	public JPanel createTable() {
+	private JPanel createTable() {
 		JPanel panel = new JPanel();
 		
 		tableModel = new AbstractTableModel() {
@@ -60,6 +63,19 @@ public class LobbyViewer implements LobbyListener {
 		return panel;
 	}
 	
+	private JPanel createButtons() {
+		JPanel panel = new JPanel();
+		panel.setLayout(new BorderLayout());
+		JButton refresh = new JButton("Refresh");
+		panel.add(refresh, BorderLayout.WEST);
+		JButton challenge = new JButton("Challenge");
+		panel.add(challenge, BorderLayout.CENTER);
+		JButton exit = new JButton("Exit");
+		panel.add(exit, BorderLayout.EAST);
+		
+		return panel;
+	}
+	
 	public LobbyViewer(Lobby lobby) {
 		this.lobby = lobby;
 		lobby.addListener(this);
@@ -69,11 +85,16 @@ public class LobbyViewer implements LobbyListener {
 		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		frame.setSize(300, 300);
 		
-		JPanel panel = createTable();
-		panel.setBorder(new EmptyBorder(10, 10, 10, 10));
-		frame.setLayout(new BorderLayout());
-		frame.add(panel, BorderLayout.NORTH);
-		frame.add(Box.createVerticalGlue());
+		JPanel mainPanel = new JPanel();
+		JPanel tablePanel = createTable();
+		JPanel buttonPanel = createButtons();
+		mainPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
+		mainPanel.setLayout(new BorderLayout());
+		mainPanel.add(tablePanel, BorderLayout.NORTH);
+		mainPanel.add(Box.createVerticalGlue(), BorderLayout.CENTER);
+		mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+		
+		frame.add(mainPanel);
 		frame.setVisible(true);
 	}
 	

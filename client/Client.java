@@ -71,8 +71,7 @@ public class Client implements Runnable {
 	
 	private String nick;
 	private int    serverPort;
-	private Socket gameSocket;
-	private int    gamePort;
+	private ServerSocket listenSocket;
 	private String machineName;
 	private Lobby  lobby;
 	private InetSocketAddress addr;
@@ -87,6 +86,7 @@ public class Client implements Runnable {
 		serverPort = parsePort(args[1]);
 		machineName = args[2];
 		
+		listenSocket = new ServerSocket(0);
 		addr = new InetSocketAddress(machineName, serverPort);
 		if (addr.isUnresolved()) {
 			System.err.println("The hostname " + machineName + " could not be resolved.");
@@ -98,24 +98,22 @@ public class Client implements Runnable {
 	public void sendJoinRequest(User opp) {
 		
 	}
-	private static User getJoinRequest() throws IOException {
-		ServerSocket serverSock = new ServerSocket(0);
-		
-		try {
-			while (true) {
-				try {
-					Socket sock = serverSock.accept();
-					
-					Packet p = null;
-					p = Packet.readPacket(sock.getInputStream());
-				} catch (ProtocolException | EOFException e) {
-					
-				} catch (IOException e) {
-					
-				}
+	private static User getJoinRequest(ServerSocket serverSock) throws IOException {
+		while (true) {
+			try {
+				Socket sock = serverSock.accept();
+				sock.setSoTimeout(1000);
+				sock.setTcpNoDelay(true);
+				sock.setKeepAlive(true);
+				
+				Packet p = null;
+				p = Packet.readPacket(sock.getInputStream());
+				
+			} catch (ProtocolException | EOFException e) {
+				
+			} catch (IOException e) {
+				
 			}
-		} finally {
-			serverSock.close();
 		}
 	}
 	
@@ -123,7 +121,6 @@ public class Client implements Runnable {
 		Socket sock = new Socket(addr.getAddress(), addr.getPort());
 		sock.setKeepAlive(true);
 		sock.setTcpNoDelay(true);
-		sock.setReuseAddress(false);
 		return sock;
 	}
 	
@@ -134,7 +131,8 @@ public class Client implements Runnable {
 		try {
 			sock = connect();
 			(new PacketSetUser(nick)).write(sock.getOutputStream());
-			getJoinRequest();
+			User opp = getJoinRequest(listenSocket);
+			
 		} catch (IOException e) {
 			String msg = e.getMessage();
 			if (msg != null)

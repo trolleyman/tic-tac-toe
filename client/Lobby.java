@@ -45,7 +45,6 @@ public class Lobby implements Runnable {
 		serverSock = new Socket(addr.getAddress(), addr.getPort());
 		serverSock.setKeepAlive(true);
 		serverSock.setTcpNoDelay(true);
-		serverSock.setReuseAddress(false);
 	}
 	
 	private void updateUsers() throws IOException, ProtocolException {
