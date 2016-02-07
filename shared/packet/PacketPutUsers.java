@@ -5,8 +5,6 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-
 import shared.Instruction;
 import shared.Username;
 import shared.exception.ProtocolException;

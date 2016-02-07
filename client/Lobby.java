@@ -18,6 +18,7 @@ public class Lobby implements Runnable {
 	private ArrayList<LobbyListener> listeners;
 	private InetSocketAddress addr;
 	private Username me;
+	private Thread t;
 	
 	public Lobby(Username me, InetSocketAddress addr) throws IOException, ProtocolException {
 		this.me = me;
@@ -26,9 +27,13 @@ public class Lobby implements Runnable {
 		this.listeners = new ArrayList<LobbyListener>();
 		updateUsers();
 		
-		Thread t = new Thread(this, "Lobby Thread");
+		t = new Thread(this, "Lobby Thread");
 		t.setDaemon(true);
 		t.start();
+	}
+	
+	public void interrupt() {
+		t.interrupt();
 	}
 	
 	private void connect() throws IOException {

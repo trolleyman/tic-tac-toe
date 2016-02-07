@@ -1,15 +1,15 @@
 package client;
 
 import java.awt.BorderLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-
 import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTable;
 import javax.swing.border.EmptyBorder;
@@ -26,6 +26,7 @@ public class LobbyViewer implements LobbyListener, WindowListener {
 	private String[] columnNames = new String[] {"Username", "Address"};
 	private JTable table;
 	private AbstractTableModel tableModel;
+	private Client client;
 	
 	@SuppressWarnings("serial")
 	private JPanel createTable() {
@@ -69,16 +70,41 @@ public class LobbyViewer implements LobbyListener, WindowListener {
 		JPanel panel = new JPanel();
 		panel.setLayout(new BorderLayout());
 		JButton refresh = new JButton("Refresh");
-		panel.add(refresh, BorderLayout.WEST);
+		refresh.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				lobby.interrupt();
+			}
+		});
 		JButton challenge = new JButton("Challenge");
-		panel.add(challenge, BorderLayout.CENTER);
+		challenge.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if (table.getSelectedRow() == -1) {
+					JOptionPane.showMessageDialog(null,
+							"Error: No row selected.", "Challenge Error", JOptionPane.ERROR_MESSAGE);
+				} else {
+					client.challenge(users.get(table.getSelectedRow()));
+				}
+			}
+		});
 		JButton exit = new JButton("Exit");
+		exit.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				System.exit(0);
+			}
+		});
+		
+		panel.add(refresh, BorderLayout.WEST);
+		panel.add(challenge, BorderLayout.CENTER);
 		panel.add(exit, BorderLayout.EAST);
 		
 		return panel;
 	}
 	
-	public LobbyViewer(Lobby lobby) {
+	public LobbyViewer(Client client, Lobby lobby) {
+		this.client = client;
 		this.lobby = lobby;
 		lobby.addListener(this);
 		users = new ArrayList<Username>();

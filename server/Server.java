@@ -6,7 +6,6 @@ import java.util.HashMap;
 
 import shared.Username;
 import shared.Util;
-import shared.exception.ProtocolException;
 import shared.exception.UserNotConnectedException;
 import shared.packet.Packet;
 

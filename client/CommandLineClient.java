@@ -8,18 +8,11 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map.Entry;
 
 import shared.Username;
 import shared.Util;
-import shared.exception.IllegalInstructionException;
 import shared.exception.InvalidUsernameException;
 import shared.exception.ProtocolException;
-import shared.packet.Packet;
-import shared.packet.PacketErr;
-import shared.packet.PacketOk;
 
 // java Client <user nickname> <port number> <machine name>
 
@@ -122,7 +115,7 @@ public class CommandLineClient implements Runnable {
 	public void run() {
 		Socket sock = null;
 		try {
-			while (true) {
+			while (!close) {
 				if (sock == null || sock.isClosed())
 					sock = connect();
 				

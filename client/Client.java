@@ -1,13 +1,17 @@
 package client;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.Random;
 
+import javax.swing.JOptionPane;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 
+import shared.Instruction;
 import shared.Username;
 import shared.Util;
 import shared.exception.EchoException;
@@ -16,6 +20,7 @@ import shared.exception.ProtocolException;
 import shared.packet.Packet;
 import shared.packet.PacketEcho;
 import shared.packet.PacketErr;
+import shared.packet.PacketRequestJoin;
 
 public class Client implements Runnable {
 	public static void printUsage() {
@@ -80,8 +85,11 @@ public class Client implements Runnable {
 	private Lobby       lobby;
 	private InetSocketAddress addr;
 	private LobbyViewer lobbyViewer;
+	private boolean     close;
+	private Username    challenged;
 	
 	public Client(String[] args) throws IOException, ProtocolException {
+		this.close = false;
 		this.rng = new Random();
 		if (args.length != 3) {
 			throw new IllegalArgumentException();
@@ -100,7 +108,7 @@ public class Client implements Runnable {
 			System.err.println("The hostname " + machineName + " could not be resolved.");
 		}
 		lobby = new Lobby(me, addr);
-		lobbyViewer = new LobbyViewer(lobby);
+		lobbyViewer = new LobbyViewer(this, lobby);
 	}
 	
 	private Socket connect() throws IOException {
@@ -124,6 +132,57 @@ public class Client implements Runnable {
 		}
 	}
 	
+	public void handlePacket(Socket sock) throws IOException, ProtocolException {
+		InputStream in = sock.getInputStream();
+		OutputStream out = sock.getOutputStream();
+		
+		Packet p = Packet.readPacket(in);
+		Instruction i = p.getInstruction();
+		
+		switch (i) {
+		case QUIT:
+			close = true;
+			return;
+		case ECHO:
+			(new PacketEcho(me, p.getFrom(), ((PacketEcho) p).getPayload())).send(out);
+			break;
+		case REQUEST_JOIN:
+			Username opponent = ((PacketRequestJoin) p).getFrom();
+			int option = JOptionPane.showConfirmDialog(null,
+					opponent + " has sent you a game invitation. Do you accept?",
+					"Game invitation alert",
+					JOptionPane.YES_NO_OPTION);
+			System.out.println("o: " + option);
+			break;
+		case ACCEPT_JOIN_REQUST:
+		
+			break;
+		case REJECT_JOIN_REQUEST:
+			
+			break;
+		case START:
+			
+			break;
+		case ERR:
+			if (Util.isDebug())
+				System.err.println("Error: " + ((PacketErr) p).getError());
+			break;
+		case OK:
+		case PUT_USERS:
+		case WAIT:
+			break; // Ignore
+		case GET_USERS:
+			(new PacketErr(me, p.getFrom(), "Illegal instruction: " + i)).send(out);
+			break; // Send ERR
+		}
+	}
+	
+	public void challenge(Username user) {
+		challenged = user;
+		// Send join request.
+		//(new PacketRequestJoin(me, user)).send();;
+	}
+	
 	@Override
 	public void run() {
 		// Connect to server using nick
@@ -131,8 +190,12 @@ public class Client implements Runnable {
 		try {
 			sock = connect();
 			echo(sock);
-			while (true) {
-				
+			while (!close) {
+				try {
+					handlePacket(sock);
+				} catch (ProtocolException e) {
+					// Ignore really, what could possibly go wrong.
+				}
 			}
 			
 		} catch (IOException | ProtocolException e) {
