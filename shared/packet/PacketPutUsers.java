@@ -3,20 +3,16 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
-import java.nio.charset.CharacterCodingException;
-import java.util.HashMap;
-import java.util.Map.Entry;
+import java.util.ArrayList;
 
 import shared.Instruction;
-import shared.UserInfo;
-import shared.Util;
+import shared.Username;
 import shared.exception.ProtocolException;
 
 public class PacketPutUsers extends Packet {
-	private final HashMap<String, UserInfo> users;
+	private final Username[] users;
 	
 	public PacketPutUsers(Packet p) throws EOFException, ProtocolException {
 		super(p);
@@ -24,66 +20,29 @@ public class PacketPutUsers extends Packet {
 		// Parse payload
 		try {
 			ByteBuffer buf = ByteBuffer.wrap(payload);
-			int usersLen = buf.getInt();
-			users = new HashMap<String, UserInfo>();
+			int usersLen = buf.getShort() & 0xFF;
+			users = new Username[usersLen];
 			for (int i = 0; i < usersLen; i++) {
 				// Get String
-				int nickLen = buf.getInt();
+				int nickLen = buf.getShort() & 0xFF;
 				byte[] bnick = new byte[nickLen];
 				buf.get(bnick);
-				String nick = Util.assertValidUsername(bnick);
-				
-				// Get server addr
-				InetSocketAddress serverAddr = null;
-				{
-					int addrLen = buf.getInt();
-					byte[] baddr = new byte[addrLen];
-					buf.get(baddr);
-					String addrString = Util.utf8Decode(baddr);
-					int port = buf.getShort() & 0xFFFF;
-					serverAddr = new InetSocketAddress(addrString, port);
-				}
-				InetSocketAddress listenAddr = null;
-				{
-					int addrLen = buf.getInt();
-					byte[] baddr = new byte[addrLen];
-					buf.get(baddr);
-					String addrString = Util.utf8Decode(baddr);
-					int port = buf.getShort() & 0xFFFF;
-					listenAddr = new InetSocketAddress(addrString, port);
-				}
-				
-				users.put(nick, new UserInfo(serverAddr, listenAddr));
+				users[i] = new Username(bnick);
 			}
-		} catch (CharacterCodingException e) {
-			throw new ProtocolException("Invalid UTF-8");
 		} catch (BufferUnderflowException e) {
 			throw new EOFException();
 		}
 	}
-	public PacketPutUsers(final HashMap<String, UserInfo> users) {
-		super(Instruction.PUT_USERS);
+	public PacketPutUsers(Username from, Username to, final Username[] users) {
+		super(Instruction.PUT_USERS, from, to);
 		this.users = users;
-		ByteArrayOutputStream baos = new ByteArrayOutputStream(users.size() * 16);
+		ByteArrayOutputStream baos = new ByteArrayOutputStream(users.length * 32);
 		DataOutputStream os = new DataOutputStream(baos);
 		try {
-			os.writeInt(users.size());
-			for (Entry<String, UserInfo> user : users.entrySet()) {
-				os.writeInt(user.getKey().length());
-				os.write(Util.utf8Encode(user.getKey()));
-				
-				{
-					String addr = user.getValue().serverAddr.getHostString();
-					os.writeInt(addr.length());
-					os.write(Util.utf8Encode(addr));
-					os.writeShort(user.getValue().serverAddr.getPort());
-				}
-				{
-					String addr = user.getValue().listenAddr.getHostString();
-					os.writeInt(addr.length());
-					os.write(Util.utf8Encode(addr));
-					os.writeShort(user.getValue().listenAddr.getPort());
-				}
+			os.writeShort(users.length);
+			for (Username user : users) {
+				os.writeShort(user.getBytes().length);
+				os.write(user.getBytes());
 			}
 			os.flush();
 		} catch (IOException e) {
@@ -92,7 +51,7 @@ public class PacketPutUsers extends Packet {
 		payload = baos.toByteArray();
 	}
 	
-	public final HashMap<String, UserInfo> getUsers() {
+	public final Username[] getUsers() {
 		return users;
 	}
 }

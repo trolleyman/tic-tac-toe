@@ -4,8 +4,11 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashMap;
 
-import shared.UserInfo;
+import shared.Username;
 import shared.Util;
+import shared.exception.ProtocolException;
+import shared.exception.UserNotConnectedException;
+import shared.packet.Packet;
 
 // java Server <port number>
 
@@ -42,12 +45,42 @@ public class Server implements Runnable {
 		s.run();
 	}
 	
-	private static HashMap<String, UserInfo> usersInfo;
+	private static HashMap<Username, ServerThread> users;
 	private static int port;
+	
+	public static void registerUsername(Username name, ServerThread t) {
+		synchronized (users) {
+			users.put(name, t);
+		}
+	}
+	public static void unregisterUsername(Username name) {
+		synchronized (users) {
+			users.remove(name);
+		}
+	}
+	public static HashMap<Username, ServerThread> getUsers() {
+		return users;
+	}
+	public static Username[] getUsersArray() {
+		synchronized (users) {
+			return (Username[]) users.keySet().toArray();
+		}
+	}
+	
+	public static void forwardPacket(Packet p) throws UserNotConnectedException {
+		Username to = p.getTo();
+		synchronized (users) {
+			if (!users.containsKey(to)) {
+				throw new UserNotConnectedException(to);
+			}
+			ServerThread t = users.get(to);
+			t.queuePacket(p);
+		}
+	}
 	
 	public Server(int _port) {
 		port = _port;
-		usersInfo = new HashMap<String, UserInfo>();
+		users = new HashMap<Username, ServerThread>();
 	}
 	
 	@Override
@@ -79,9 +112,5 @@ public class Server implements Runnable {
 			if (serverSock != null)
 				serverSock.close();
 		}
-	}
-	
-	public static HashMap<String, UserInfo> getUsersInfo() {
-		return usersInfo;
 	}
 }

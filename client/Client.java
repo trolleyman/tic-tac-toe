@@ -130,7 +130,7 @@ public class Client implements Runnable {
 		Socket sock = null;
 		try {
 			sock = connect();
-			(new PacketSetUser(nick)).write(sock.getOutputStream());
+			(new PacketSetUser(nick)).send(sock.getOutputStream());
 			User opp = getJoinRequest(listenSocket);
 			
 		} catch (IOException e) {

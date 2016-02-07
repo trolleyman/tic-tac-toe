@@ -1,17 +1,18 @@
 package shared.packet;
 
 import shared.Instruction;
+import shared.Username;
 import shared.Util;
 
 public class PacketErr extends PacketResult {
 	private final String error;
 	
-	public PacketErr() {
-		super(Instruction.ERR);
+	public PacketErr(Username from, Username to) {
+		super(Instruction.ERR, from, to);
 		error = null;
 	}
-	public PacketErr(String error) {
-		super(Instruction.ERR);
+	public PacketErr(Username from, Username to, String error) {
+		super(Instruction.ERR, from, to);
 		this.error = error;
 		this.payload = Util.utf8EncodeReplace(error);
 	}

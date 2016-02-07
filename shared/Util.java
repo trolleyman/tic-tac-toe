@@ -1,11 +1,12 @@
 package shared;
-import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.CharBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CodingErrorAction;
@@ -16,6 +17,35 @@ import shared.exception.InvalidUsernameException;
 
 public class Util {
 	public static final int MAX_PORT = 49152;
+	
+	/**
+	 * Reads or throw an IO exception
+	 * @param is The input stream
+	 * @return the byte read.
+	 * @throws IOException 
+	 */
+	public static byte read(InputStream in) throws IOException {
+		int i = in.read();
+		if (i == -1) {
+			throw new EOFException();
+		}
+		return (byte) i;
+	}
+	public static int readUShort(InputStream in) throws IOException {
+		ByteBuffer buf = ByteBuffer.allocate(4);
+		buf.order(ByteOrder.BIG_ENDIAN);
+		buf.put(Util.read(in));
+		buf.put(Util.read(in));
+		buf.put(Util.read(in));
+		buf.put(Util.read(in));
+		return buf.getShort() & 0xFFFF;
+	}
+	public static void readBytes(InputStream in, byte[] bytes) throws IOException {
+		int len = in.read(bytes);
+		if (len != bytes.length) {
+			throw new EOFException();
+		}
+	}
 	
 	public static String sockAddressToString(Socket sock) {
 		return sockAddressToString(sock.getInetAddress(), sock.getPort());
@@ -30,26 +60,7 @@ public class Util {
 			return addr.getHostName() + " (" + addr.getHostAddress() + ":" + port + ")";
 		}
 	}
-	
-	public static void writeSocketAddress(DataOutputStream os, InetSocketAddress addr) throws IOException {
-		String saddr = addr.getHostString();
-		os.writeInt(saddr.length());
-		os.write(Util.utf8Encode(saddr));
-		os.writeShort(addr.getPort());
-	}
-	public static InetSocketAddress readSocketAddress(ByteBuffer buf) throws CharacterCodingException, UnknownHostException {
-		int addrLen = buf.getInt();
-		byte[] baddr = new byte[addrLen];
-		buf.get(baddr);
-		String addrString = Util.utf8Decode(baddr);
-		int port = buf.getShort() & 0xFFFF;
-		InetSocketAddress addr = new InetSocketAddress(addrString, port);
-		if (addr.isUnresolved()) {
-			throw new UnknownHostException();
-		}
-		return addr;
-	}
-	
+		
 	public static String bytesToString(byte[] b) {
 		StringBuilder build = new StringBuilder(b.length);
 		build.append(Character.toChars(b[0])[0]);
@@ -125,7 +136,7 @@ public class Util {
 		}
 	}
 	public static void assertValidUsername(String nick) throws InvalidUsernameException {
-		if (nick.length() == 0) {
+		if (nick.length() >= 32) {
 			throw new InvalidUsernameException(nick, InvalidUsername.LENGTH);
 		} else {
 			for (int i = 0; i < nick.length(); i++) {

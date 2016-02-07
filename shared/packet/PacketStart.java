@@ -11,6 +11,7 @@ import java.nio.ByteBuffer;
 import shared.GameStart;
 import shared.GameState;
 import shared.Instruction;
+import shared.Username;
 import shared.exception.ProtocolException;
 
 public class PacketStart extends Packet {
@@ -38,8 +39,8 @@ public class PacketStart extends Packet {
 			throw new EOFException();
 		}
 	}
-	public PacketStart(GameStart start) {
-		super(Instruction.START);
+	public PacketStart(Username from, Username to, GameStart start) {
+		super(Instruction.START, from, to);
 		this.start = start;
 		ByteArrayOutputStream baos = new ByteArrayOutputStream(GameState.BOARD_SIZE * GameState.BOARD_SIZE * Character.BYTES + Integer.BYTES + 2);
 		DataOutputStream os = new DataOutputStream(baos);

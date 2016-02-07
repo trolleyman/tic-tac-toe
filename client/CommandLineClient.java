@@ -91,7 +91,7 @@ public class CommandLineClient implements Runnable {
 	 * @throws ProtocolException 
 	 */
 	private static boolean setNick(Socket sock, String newNick) throws IOException, ProtocolException {
-		(new PacketSetUser(newNick)).write(sock.getOutputStream());
+		(new PacketSetUser(newNick)).send(sock.getOutputStream());
 		Packet p = Packet.readPacket(sock.getInputStream());
 		if (p instanceof PacketOk) {
 			return true;

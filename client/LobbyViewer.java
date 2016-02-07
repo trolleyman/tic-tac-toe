@@ -18,7 +18,7 @@ import javax.swing.event.TableModelListener;
 import javax.swing.table.AbstractTableModel;
 
 import javafx.scene.layout.Border;
-import shared.UserInfo;
+import shared.Username;
 
 public class LobbyViewer implements LobbyListener {
 	private Lobby lobby;
@@ -100,7 +100,7 @@ public class LobbyViewer implements LobbyListener {
 	
 	private void updateUsers() {
 		synchronized (usersLock) {
-			HashMap<String, UserInfo> hmUsers = lobby.getUsers();
+			Username[] hmUsers = lobby.getUsers();
 			ArrayList<Entry<String, UserInfo>> entries
 				= new ArrayList<Entry<String, UserInfo>>(hmUsers.entrySet());
 			
@@ -169,7 +169,7 @@ public class LobbyViewer implements LobbyListener {
 	}
 	
 	@Override
-	public void usersChanged(HashMap<String, UserInfo> newUsers) {
+	public void usersChanged(Username[] newUsers) {
 		updateUsers();
 	}
 }

@@ -2,32 +2,30 @@ package server;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.HashMap;
+import java.util.LinkedList;
 
 import shared.Instruction;
-import shared.UserInfo;
-import shared.Util;
-import shared.exception.InvalidUsername;
-import shared.exception.InvalidUsernameException;
+import shared.Username;
 import shared.exception.ProtocolException;
+import shared.exception.UserNotConnectedException;
 import shared.packet.Packet;
 import shared.packet.PacketErr;
-import shared.packet.PacketOk;
 import shared.packet.PacketPutUsers;
-import shared.packet.PacketSetUser;
 
 public class ServerThread extends Thread {
 	private Socket sock;
 	private boolean close;
-	private String nick;
+	private Username nick;
+	private LinkedList<Packet> packetQueue;
 	
 	public ServerThread(Socket _sock) {
 		super();
 		sock = _sock;
 		close = false;
 		nick = null;
+		packetQueue = new LinkedList<Packet>();
 	}
 	
 	@Override
@@ -43,13 +41,23 @@ public class ServerThread extends Thread {
 			OutputStream out = sock.getOutputStream();
 			
 			while (!close) {
-				handlePacket(in, out);
+				if (in.available() > 0) {
+					handlePacket(in, out);
+				} else {
+					synchronized (packetQueue) {
+						while (packetQueue.size() > 0) {
+							packetQueue.pop().send(out);
+						}
+					}
+				}
+				try {
+					Thread.sleep(10);
+				} catch (InterruptedException e) {
+					
+				}
 			}
 		} catch (ProtocolException e) {
 			// Problem with the internal connection
-			if (nick != null) {
-				System.out.println(nick + " left.");
-			}
 			String msg;
 			if ((msg = e.getMessage()) != null) {
 				System.err.println("Protocol error: " + msg);
@@ -68,10 +76,7 @@ public class ServerThread extends Thread {
 			// Remove the nick from the list of connected users
 			if (nick != null) {
 				System.out.println(nick + " left.");
-				HashMap<String, ?> users = Server.getUsersInfo();
-				synchronized (users) {
-					users.remove(nick);
-				}
+				Server.unregisterUsername(nick);
 			}
 			
 			try {
@@ -87,55 +92,77 @@ public class ServerThread extends Thread {
 		//System.out.println("Packet recieved from " + Util.sockAddressToString(sock) + ": " + p.getInstruction());
 		Instruction i = p.getInstruction();
 		
+		if (i == Instruction.QUIT) {
+			close = true;
+			return;
+		}
+		
+		if (p.getFrom().isServer()) {
+			(new PacketErr(Username.SERVER, p.getFrom(), "A server cannot connect to another server")).send(out);
+			(new Packet(Instruction.QUIT, Username.SERVER, p.getFrom())).send(out);
+		}
+		
+		if (nick == null) {
+			HashMap<Username, ServerThread> users = Server.getUsers();
+			synchronized (users) {
+				if (users.containsKey(p.getFrom())) {
+					(new PacketErr(Username.SERVER, p.getFrom(), "Username already taken")).send(out);
+				} else {
+					users.put(p.getFrom(), this);
+				}
+			}
+			nick = p.getFrom();
+			Server.registerUsername(nick, this);
+		}
+		
+		if (!p.getFrom().equals(nick)) {
+			(new PacketErr(Username.SERVER, p.getFrom(),
+					"Only " + nick.getString() + " can send packets on this socket. Got " + p.getFrom().getString()
+					)).send(out);
+			return;
+		}
+		
+		if (!p.getTo().isServer()) {
+			try {
+				Server.forwardPacket(p);
+			} catch (UserNotConnectedException e) {
+				(new PacketErr(Username.SERVER, nick, e.getMessage())).send(out);
+			}
+			return;
+		}
+		
 		// These instructions are allowed at any time:
 		switch (i) {
 		case QUIT:
 			close = true;
 			break;
 		case GET_USERS:
-			(new PacketPutUsers(Server.getUsersInfo())).write(out);
+			(new PacketPutUsers(Username.SERVER, nick, Server.getUsersArray())).send(out);
 			break;
+		case OK:
+		case ERR:
+		case WAIT:
+			break;
+			
 		case PUT_USERS:
-			// Ignore.
-			break;
-		case SET_USER:
-			try {
-				PacketSetUser pn = ((PacketSetUser) Packet.downcastPacket(p));
-				String nick = pn.getNick();
-				setUser(nick, pn.getListenAddr());
-				System.out.println(nick + " connected from " + Util.sockAddressToString(sock)
-						+ " and listening from " + Util.sockAddressToString(pn.getListenAddr()));
-				(new PacketOk()).write(out);
-			} catch (InvalidUsernameException e) {
-				(new PacketErr(e.getMessage())).write(out);
-			}
-			break;
 		case ACCEPT_JOIN_REQUST:
 		case REJECT_JOIN_REQUEST:
-		case ERR:
-		case OK:
 		case REQUEST_JOIN:
 		case START:
-		case WAIT:
 		default:
-			(new PacketErr()).write(out);
+			(new PacketErr(Username.SERVER, nick, "Illegal instruction: " + i)).send(out);
 		}
 	}
-
-	private void setUser(String newNick, InetSocketAddress listenAddr) throws InvalidUsernameException {
-		HashMap<String, UserInfo> users = Server.getUsersInfo();
-		synchronized (users) {
-			if (users.containsKey(newNick)) {
-				throw new InvalidUsernameException(newNick, InvalidUsername.USER_ALREADY_LOGGED_IN);
-			}
-			
-			if (users.containsKey(nick)) {
-				users.put(newNick, users.get(nick));
-			} else {
-				users.put(newNick, new UserInfo(new InetSocketAddress(sock.getInetAddress(), sock.getPort()), listenAddr));
-			}
-			nick = newNick;
+	
+	/**
+	 * Queues a packet to be sent from the server to the user associated with the client.
+	 * @param p
+	 */
+	public void queuePacket(Packet p) {
+		synchronized (packetQueue) {
+			packetQueue.push(p);
 		}
+		this.interrupt();
 	}
 
 }

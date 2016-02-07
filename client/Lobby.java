@@ -6,23 +6,20 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import shared.UserInfo;
+import shared.Username;
 import shared.exception.ProtocolException;
 import shared.packet.Packet;
-import shared.packet.PacketGetUsers;
 import shared.packet.PacketPutUsers;
 
 public class Lobby implements Runnable {
-	private Socket serverSock = null;
-	private HashMap<String, UserInfo> users;
+	private Socket sock;
+	private Username[] users;
 	private boolean running = true;
-	private InetSocketAddress serverAddr;
 	private ArrayList<LobbyListener> listeners;
 	
-	public Lobby(InetSocketAddress serverAddr) throws IOException, ProtocolException {
+	public Lobby(Username from, Socket sock) throws IOException, ProtocolException {
+		this.sock = sock;
 		this.listeners = new ArrayList<LobbyListener>();
-		this.serverAddr = serverAddr;
-		connect(serverAddr);
 		updateUsers();
 		
 		Thread t = new Thread(this, "Lobby Thread");
@@ -41,14 +38,8 @@ public class Lobby implements Runnable {
 		}
 	}
 	
-	private void connect(InetSocketAddress addr) throws IOException {
-		serverSock = new Socket(addr.getAddress(), addr.getPort());
-		serverSock.setKeepAlive(true);
-		serverSock.setTcpNoDelay(true);
-	}
-	
 	private void updateUsers() throws IOException, ProtocolException {
-		(new PacketGetUsers()).write(serverSock.getOutputStream());
+		(new PacketGetUsers()).send(sock.getOutputStream());
 		Packet p = null;
 		while (p == null || !(p instanceof PacketPutUsers)) {
 			if (!running) {
