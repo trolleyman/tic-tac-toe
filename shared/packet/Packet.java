@@ -95,7 +95,10 @@ public class Packet {
 	
 	public byte[] toByteArray() {
 		ByteBuffer buf = ByteBuffer.allocate(
-				1 + 2 + from.getBytes().length + 2 + to.getBytes().length + 2 + payload.length);
+				1 + 2
+				+ from.getBytes().length + 2
+				+ to.getBytes().length + 2
+				+ payload.length);
 		buf.order(ByteOrder.BIG_ENDIAN);
 		buf.put((byte) ins.ordinal());
 		buf.putShort((short) from.getBytes().length);

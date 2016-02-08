@@ -11,6 +11,7 @@ import java.nio.CharBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 import shared.exception.InvalidUsername;
 import shared.exception.InvalidUsernameException;
@@ -107,11 +108,19 @@ public class Util {
 		CharBuffer cbuf = CharBuffer.wrap(s.toCharArray());
 		
 		try {
-			return StandardCharsets.UTF_8.newEncoder()
+			byte[] arr = StandardCharsets.UTF_8.newEncoder()
 				.onMalformedInput(CodingErrorAction.REPLACE)
 				.onUnmappableCharacter(CodingErrorAction.REPLACE)
 				.encode(cbuf)
 				.array();
+			int size = arr.length - 1;
+			while (size >= 0) {
+				if (arr[size] != 0) {
+					break;
+				}
+				size--;
+			}
+			return Arrays.copyOf(arr, size + 1);
 		} catch (CharacterCodingException e) {
 			throw new AssertionError();
 		}
@@ -148,8 +157,8 @@ public class Util {
 	public static void assertValidUsername(String nick) throws InvalidUsernameException {
 		if (nick.length() >= 32) {
 			throw new InvalidUsernameException(nick, InvalidUsername.LENGTH);
-		} else if (nick.equals(" ")) {
-			// It's fine - it's the server
+		} else if (nick.startsWith(" ")) {
+			// It's fine - it's not a user though
 		} else {
 			for (int i = 0; i < nick.length(); i++) {
 				if (Character.isWhitespace(nick.charAt(i))) {

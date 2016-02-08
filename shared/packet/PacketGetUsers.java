@@ -1,8 +1,7 @@
-package client;
+package shared.packet;
 
 import shared.Instruction;
 import shared.Username;
-import shared.packet.Packet;
 
 public class PacketGetUsers extends Packet {
 	public PacketGetUsers(Packet p) {

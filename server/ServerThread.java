@@ -3,6 +3,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.util.HashMap;
 import java.util.LinkedList;
 
@@ -23,10 +24,10 @@ public class ServerThread extends Thread {
 	private LinkedList<Packet> packetQueue;
 	
 	public ServerThread(Socket _sock) {
-		super();
+		super("ServerThread: " + Util.sockAddressToString(_sock));
 		sock = _sock;
 		close = false;
-		client = null;
+		client = Username.NULL;
 		packetQueue = new LinkedList<Packet>();
 	}
 	
@@ -39,19 +40,19 @@ public class ServerThread extends Thread {
 			sock.setTcpNoDelay(true);
 			//sock.setSoTimeout(5000);
 			
+			long last = System.nanoTime();
 			while (!close) {
 				if (sock.getInputStream().available() > 0) {
-					handlePacket(sock.getInputStream(), sock.getOutputStream());
+					handlePacket(sock);
 				} else if (!packetQueue.isEmpty()) {
 					for (Packet packet : packetQueue) {
 						packet.send(sock.getOutputStream());
 					}
 				} else {
-					(new Packet(Instruction.WAIT, Username.SERVER, client)).send(sock.getOutputStream());;
-					try {
-						Thread.sleep(10);
-					} catch (InterruptedException e) {
-						
+					// 100 milliseconds in nanoseconds = 100_000_000
+					if (System.nanoTime() - last >= 100_000_000) {
+						(new Packet(Instruction.WAIT, Username.SERVER, client)).send(sock.getOutputStream());
+						last = System.nanoTime();
 					}
 				}
 			}
@@ -86,8 +87,18 @@ public class ServerThread extends Thread {
 		}
 	}
 	
-	private void handlePacket(InputStream in, OutputStream out) throws IOException, ProtocolException {
-		Packet p = Packet.readPacket(in);
+	private void handlePacket(Socket sock) throws IOException, ProtocolException {
+		InputStream in = sock.getInputStream();
+		OutputStream out = sock.getOutputStream();
+		
+		sock.setSoTimeout(10);
+		Packet p = null;
+		try {
+			p = Packet.readPacket(in);
+		} catch (SocketTimeoutException e) {
+			return;
+		}
+		sock.setSoTimeout(0);
 		
 		if (Util.isDebug()) {
 			String payloadMsg = "";
@@ -110,11 +121,11 @@ public class ServerThread extends Thread {
 			return;
 		}
 		
-		if (client == null && !p.getFrom().isNull()) {
+		if ((client == null || client.isNull()) && p.getFrom().isUser()) {
 			HashMap<Username, ServerThread> users = Server.getUsers();
 			synchronized (users) {
 				if (users.containsKey(p.getFrom())) {
-					(new PacketErr(Username.SERVER, p.getFrom(), "Username already taken")).send(out);
+					(new PacketErr(Username.SERVER, p.getFrom(), "Username already taken: " + p.getFrom())).send(out);
 					return;
 				} else {
 					users.put(p.getFrom(), this);

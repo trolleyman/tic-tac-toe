@@ -5,6 +5,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
+import java.io.IOException;
 import java.util.ArrayList;
 import javax.swing.Box;
 import javax.swing.JButton;
@@ -80,11 +81,22 @@ public class LobbyViewer implements LobbyListener, WindowListener {
 		challenge.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				if (table.getSelectedRow() == -1) {
+				if (client.isChallenging()) {
 					JOptionPane.showMessageDialog(null,
-							"Error: No row selected.", "Challenge Error", JOptionPane.ERROR_MESSAGE);
+							"Cannot challenge multiple people at once.", "Challenge Error", JOptionPane.ERROR_MESSAGE);
+					return;
+				}
+				int row = table.getSelectedRow();
+				if (row == -1) {
+					JOptionPane.showMessageDialog(null,
+							"No row selected.", "Challenge Error", JOptionPane.ERROR_MESSAGE);
 				} else {
-					client.challenge(users.get(table.getSelectedRow()));
+					try {
+						client.challenge(users.get(row));
+					} catch (IOException ex) {
+						JOptionPane.showMessageDialog(null,
+								"Connection to server lost: " + ex.getMessage(), "Challenge Error", JOptionPane.ERROR_MESSAGE);
+					}
 				}
 			}
 		});

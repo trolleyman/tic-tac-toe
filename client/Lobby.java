@@ -9,6 +9,7 @@ import java.util.Arrays;
 import shared.Username;
 import shared.exception.ProtocolException;
 import shared.packet.Packet;
+import shared.packet.PacketGetUsers;
 import shared.packet.PacketPutUsers;
 
 public class Lobby implements Runnable {
@@ -54,7 +55,7 @@ public class Lobby implements Runnable {
 	}
 	
 	private void updateUsers() throws IOException, ProtocolException {
-		(new PacketGetUsers(Username.NULL, Username.SERVER)).send(sock.getOutputStream());
+		(new PacketGetUsers(Username.LOBBY, Username.SERVER)).send(sock.getOutputStream());
 		Packet p = null;
 		while (p == null || !(p instanceof PacketPutUsers)) {
 			if (!running) {

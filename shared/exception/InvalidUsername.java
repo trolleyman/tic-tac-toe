@@ -8,13 +8,13 @@ public enum InvalidUsername {
 	public String toString(String nick) {
 		switch (this) {
 		case LENGTH:
-			return "Inavlid username: Username too long: " + nick;
+			return "'" + nick + "' is an inavlid username: Username too long.";
 		case UTF8:
-			return "Inavlid username: UTF8 encoding error: " + nick;
+			return "'" + nick + "' is an inavlid username: UTF8 encoding error: ";
 		case WHITESPACE:
-			return "Inavlid username: Whitespace not allowed: " + nick;
+			return "'" + nick + "' is an inavlid username: Whitespace not allowed: ";
 		default:
-			return "Invalid username: " + nick;
+			return "'" + nick + "' is an inavlid username.";
 		}
 	}
 }

@@ -7,13 +7,15 @@ import shared.exception.InvalidUsernameException;
 public class Username implements Comparable<Username> {
 	static {
 		try {
-			SERVER = new Username(" ");
-			NULL = new Username("");
+			LOBBY = new Username(" LOBBY");
+			SERVER = new Username(" SERVER");
+			NULL = new Username(" NULL");
 		} catch (InvalidUsernameException e) {
 			throw new Error(e.getMessage());
 		}
 	}
 	static public final Username SERVER;
+	static public final Username LOBBY;
 	static public final Username NULL;
 	
 	private byte[] bytes;
@@ -47,7 +49,7 @@ public class Username implements Comparable<Username> {
 	 * @return
 	 */
 	public boolean isUser() {
-		return !(isNull() || isServer());
+		return !(getString().startsWith(" "));
 	}
 	public boolean isNull() {
 		return this.equals(NULL);
@@ -55,12 +57,14 @@ public class Username implements Comparable<Username> {
 	public boolean isServer() {
 		return this.equals(SERVER);
 	}
+	public boolean isLobby() {
+		return this.equals(LOBBY);
+	}
 	
 	@Override
 	public String toString() {
-		if (isNull())        return "NULL";
-		else if (isServer()) return "SERVER";
-		else                 return getString();
+		if (!isUser()) return getString().trim();
+		else           return getString();
 	}
 	
 	@Override
