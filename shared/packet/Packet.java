@@ -86,8 +86,7 @@ public class Packet {
 		case WAIT:
 			return p;
 		}
-		System.err.println("Error: Unknown Instruction: " + p.getInstruction());
-		System.err.println(" at Packet.java:86");
+		Util.debugTrace("Error: Unknown Instruction: " + p.getInstruction());
 		return p;
 	}
 	
@@ -99,7 +98,7 @@ public class Packet {
 	
 	public void send(OutputStream out) throws IOException {
 		if (getInstruction() != Instruction.WAIT) {
-			Util.debug("Sending packet from " + from + " to " + to + ": " + this);
+			//Util.debug("Sending packet from " + from + " to " + to + ": " + this);
 		}
 		out.write(toByteArray());
 	}

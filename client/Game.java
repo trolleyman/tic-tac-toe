@@ -73,9 +73,6 @@ public class Game {
 			first = rng.nextBoolean();
 			cross = rng.nextBoolean();
 			state = new GameState();
-			state.setState(0, 0, GameState.CROSS);
-			state.setState(1, 1, GameState.NOUGHT);
-			state.setState(2, 2, GameState.CROSS);
 			start = new GameStart(state, !first, !cross);
 			Util.debug("Sending game start info...");
 			(new PacketStart(me, opp, start)).send(sock.getOutputStream());

@@ -89,7 +89,7 @@ public class Lobby implements Runnable {
 				}
 				
 				try {
-					Thread.sleep(10000);
+					Thread.sleep(100);
 				} catch (InterruptedException e) {
 					// Ignore
 				}

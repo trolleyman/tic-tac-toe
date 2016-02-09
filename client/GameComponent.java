@@ -15,10 +15,8 @@ import shared.GameState;
 public class GameComponent extends JComponent implements GameListener {
 	private GameState state;
 	private Game game;
-	private GameComponent ths;
 	
 	public GameComponent(Game game) {
-		ths = this;
 		this.game = game;
 		state = game.getGameState();
 		game.addGameListener(this);
@@ -47,7 +45,7 @@ public class GameComponent extends JComponent implements GameListener {
 					System.out.println("x:" + x + ", y:" + y);
 					if (game.getGameState().getState(x, y) != GameState.EMPTY) {
 						JOptionPane.showInternalMessageDialog(
-							ths, "Error: Non-empty tiles cannot be selected.",
+							null, "Error: Non-empty tiles cannot be selected.",
 							"Tic-Tac-Toe Error", JOptionPane.ERROR_MESSAGE);
 						return;
 					}

@@ -102,8 +102,7 @@ public class ServerThread extends Thread {
 		}
 		sock.setSoTimeout(0);
 	
-		Util.debug("Packet recieved from " + p.getFrom() + " to " + p.getTo()
-			+ ": " + p);
+		//Util.debug("Packet recieved from " + p.getFrom() + " to " + p.getTo() + ": " + p);
 		
 		Instruction i = p.getInstruction();
 		

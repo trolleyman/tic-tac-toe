@@ -9,6 +9,7 @@ import java.awt.event.WindowListener;
 import javax.swing.BorderFactory;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
 import shared.GameState;
@@ -64,6 +65,7 @@ public class GameViewer implements GameListener {
 		
 		frame.pack();
 	    frame.setLocation(center.x - frame.getWidth() / 2, center.y - frame.getHeight() / 2);
+	    update();
 		frame.setVisible(true);
 	}
 	
@@ -87,6 +89,14 @@ public class GameViewer implements GameListener {
 
 	@Override
 	public void gameEnded(boolean won) {
-		update();
+		if (won) {
+			JOptionPane.showMessageDialog(
+				null, "You won tic-tac-toe against " + g.getOpponent() + "!",
+				"Congratulations!", JOptionPane.PLAIN_MESSAGE);
+		} else {
+			JOptionPane.showMessageDialog(
+				null, "You lost tic-tac-toe against " + g.getOpponent() + "...",
+				"Comiserations...", JOptionPane.PLAIN_MESSAGE);
+		}
 	}
 }
