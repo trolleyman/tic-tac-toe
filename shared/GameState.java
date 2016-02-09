@@ -39,6 +39,17 @@ public class GameState {
 	public GameState clone() {
 		return new GameState(board.clone());
 	}
+	public boolean isDraw() {
+		for (int i = 0; i < BOARD_SIZE * BOARD_SIZE; i++) {
+			if (board[i] == GameState.EMPTY) {
+				return false;
+			}
+		}
+		if (won() == GameState.EMPTY) {
+			return true;
+		}
+		return false;
+	}
 	public boolean hasWon(int piece) {
 		int p = won();
 		if (p == piece) {
