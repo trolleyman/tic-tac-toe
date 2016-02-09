@@ -1,9 +1,10 @@
 package client;
 
+import java.awt.Dimension;
+import java.awt.Point;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.util.Random;
@@ -21,9 +22,8 @@ import shared.exception.ProtocolException;
 import shared.packet.Packet;
 import shared.packet.PacketEcho;
 import shared.packet.PacketErr;
-import shared.packet.PacketRequestJoin;
 
-public class Client implements Runnable {
+public class Client {
 	public static void main(String[] args) {
 		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
@@ -39,46 +39,57 @@ public class Client implements Runnable {
 		
 		try {
 			ClientArgs cargs = new ClientArgs(args);
-			Client c = new Client(cargs.me, cargs.sock);
-			c.run();
-			Username opp = c.getOpponent();
-			if (opp == null) {
-				return;
-			}
-			Game g = new Game(cargs.sock, opp);
 			
+			while (true) {
+				Lobby lobby = new Lobby(cargs.me, cargs.addr);
+				Client c = new Client(cargs.me, cargs.sock, lobby);
+				LobbyViewer view = new LobbyViewer(c, lobby);
+				Username opp = c.run();
+				Point pos = view.getPosition();
+				Dimension size = view.getSize();
+				pos.x = pos.x + size.width / 2;
+				pos.y = pos.y + size.height / 2;
+				view.close();
+				
+				if (opp == null) {
+					Util.debugTrace("Error: opp is null");
+					return;
+				}
+				Game g = new Game(cargs.sock, c.requestedJoin(), cargs.me, opp);
+				GameViewer gv = new GameViewer(g, pos);
+				g.run();
+				gv.close();
+			}
 		} catch (IOException e) {
 			String msg = e.getMessage();
 			if (msg != null)
 				System.err.println("IO Error: " + msg);
 			else
 				System.err.println("IO Error occured. The client has to close.");
-			e.printStackTrace(System.err);
+			if (Util.isDebug())
+				e.printStackTrace(System.err);
 		} catch (ProtocolException e) {
 			String msg = e.getMessage();
 			if (msg != null)
 				System.err.println("Protocol Error: " + msg);
+			if (Util.isDebug())
+				e.printStackTrace(System.err);
 		}
 	}
+
+	private Random   rng;
+	private Username me;
+	private Socket   sock;
+	private volatile boolean  close;
 	
-	private Random      rng;
-	private Username    me;
-	private Lobby       lobby;
-	private Socket      sock;
-	private InetSocketAddress addr;
-	private LobbyViewer lobbyViewer;
-	private boolean     close;
+	private Username challenged;
+	private Username opponent;
+	private volatile boolean requestedJoin;
 	
-	private Username    challenged;
-	private Username    opponent;
-	
-	public Client(Username me, Socket sock) throws IOException, ProtocolException {
-		this.rng = new Random();
+	public Client(Username me, Socket sock, Lobby lobby) throws IOException, ProtocolException {
+		rng = new Random();
 		this.me = me;
 		this.sock = sock;
-		addr = new InetSocketAddress(sock.getInetAddress(), sock.getPort());
-		lobby = new Lobby(me, addr);
-		lobbyViewer = new LobbyViewer(this, lobby);
 	}
 	
 	private void echo(Socket sock) throws IOException, ProtocolException {
@@ -96,8 +107,14 @@ public class Client implements Runnable {
 		}
 	}
 	
+	public boolean requestedJoin() {
+		return requestedJoin;
+	}
 	public Username getOpponent() {
 		return opponent;
+	}
+	public void setOpponent(Username opponent) {
+		this.opponent = opponent;
 	}
 	
 	public void handlePacket(Socket sock) throws IOException, ProtocolException {
@@ -112,6 +129,8 @@ public class Client implements Runnable {
 			return;
 		}
 		sock.setSoTimeout(0);
+		Util.debug("Packet recieved from " + p.getFrom() + " to " + p.getTo()
+			+ ": " + p);
 		Instruction i = p.getInstruction();
 		
 		switch (i) {
@@ -123,7 +142,8 @@ public class Client implements Runnable {
 			break;
 		case REQUEST_JOIN:
 			synchronized (this) {
-				Username opponent = ((PacketRequestJoin) p).getFrom();
+				Util.debug("Recieved challenge from " + p.getFrom());
+				Username opponent = p.getFrom();
 				int option = JOptionPane.showConfirmDialog(null,
 						opponent + " has sent you a game invitation. Do you accept?",
 						"Game invitation alert",
@@ -131,6 +151,7 @@ public class Client implements Runnable {
 				if (option == JOptionPane.YES_OPTION) {
 					(new Packet(Instruction.ACCEPT_JOIN_REQUST, me, opponent)).send(out);
 					this.opponent = opponent;
+					requestedJoin = false;
 					return;
 				} else {
 					(new Packet(Instruction.REJECT_JOIN_REQUEST, me, opponent)).send(out);
@@ -138,14 +159,26 @@ public class Client implements Runnable {
 			}
 			break;
 		case ACCEPT_JOIN_REQUST:
-			
+			synchronized (this) {
+				if (challenged != null) {
+					Util.println("Challenge vs " + challenged + " accepted!");
+					opponent = challenged;
+					requestedJoin = true;
+					challenged = null;
+					return;
+				}
+			}
 			break;
 		case REJECT_JOIN_REQUEST:
-			
+			synchronized (this) {
+				if (challenged != null) {
+					Util.println("Challenge vs " + challenged + " rejected...");
+					challenged = null;
+				}
+			}
 			break;
 		case ERR:
-			if (Util.isDebug())
-				System.err.println("Error: " + ((PacketErr) p).getError());
+			Util.debugTrace("Error: " + ((PacketErr) p).getError());
 			break;
 		case OK:
 		case START:
@@ -165,10 +198,11 @@ public class Client implements Runnable {
 	public void challenge(Username user) throws IOException {
 		synchronized (this) {
 			try {
+				Util.debugTrace("Challenging "+ user);
 				challenged = user;
 				// Send join request.
 				synchronized (sock) {
-					(new PacketRequestJoin(me, user)).send(sock.getOutputStream());
+					(new Packet(Instruction.REQUEST_JOIN, me, user)).send(sock.getOutputStream());
 				}
 			} catch (IOException e) {
 				challenged = null;
@@ -177,9 +211,9 @@ public class Client implements Runnable {
 		}
 	}
 	
-	@Override
-	public void run() {
+	public Username run() {
 		// Connect to server using nick
+		opponent = null;
 		try {
 			echo(sock);
 			while (!close) {
@@ -187,7 +221,7 @@ public class Client implements Runnable {
 					long last = System.nanoTime();
 					if (opponent != null) {
 						// Found a worthy adversary, return.
-						return;
+						return opponent;
 					} else if (sock.getInputStream().available() > 0) {
 						synchronized (sock) {
 							handlePacket(sock);
@@ -206,12 +240,10 @@ public class Client implements Runnable {
 					// Ignore really, what could possibly go wrong.
 				}
 			}
-			
 		} catch (IOException | ProtocolException e) {
-			String msg = e.getMessage();
-			if (msg != null)
-				System.err.println("Error: " + msg);
+			Util.debugTrace(e);
 			System.exit(1);
 		}
+		return null;
 	}
 }

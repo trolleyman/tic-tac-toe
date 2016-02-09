@@ -39,12 +39,12 @@ public class Packet {
 		int fromLen = Util.readUShort(in);
 		byte[] fromBytes = new byte[fromLen];
 		Util.readBytes(in, fromBytes);
-		this.from = new Username(fromBytes);
+		from = new Username(fromBytes);
 		
 		int toLen = Util.readUShort(in);
 		byte[] toBytes = new byte[toLen];
 		Util.readBytes(in, toBytes);
-		this.to = new Username(toBytes);
+		to = new Username(toBytes);
 		
 		int payloadLen = Util.readUShort(in);
 		payload = new byte[payloadLen];
@@ -72,21 +72,27 @@ public class Packet {
 			return new PacketErr(p);
 		case PUT_USERS:
 			return new PacketPutUsers(p);
-		case REQUEST_JOIN:
-			return new PacketRequestJoin(p);
 		case ECHO:
 			return new PacketEcho(p);
+		case START:
+			return new PacketStart(p);
 		case GET_USERS:
+		case REQUEST_JOIN:
 		case ACCEPT_JOIN_REQUST:
 		case REJECT_JOIN_REQUEST:
 		case QUIT:
-			return p;
-		
-		default:
-			System.err.println("Error: Unknown Instruction: " + p.getInstruction());
-			System.err.println(" at Packet.java:86");
+		case WAIT:
 			return p;
 		}
+		System.err.println("Error: Unknown Instruction: " + p.getInstruction());
+		System.err.println(" at Packet.java:86");
+		return p;
+	}
+	
+	@Override
+	public String toString() {
+		return getInstruction().toString()
+		+ (getPayload().length == 0 ? "" : " - 0x" + Util.bytesToHex(getPayload()));
 	}
 	
 	public void send(OutputStream out) throws IOException {

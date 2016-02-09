@@ -23,7 +23,7 @@ public class Util {
 	 * Reads or throw an IO exception
 	 * @param is The input stream
 	 * @return the byte read.
-	 * @throws IOException 
+	 * @throws IOException
 	 */
 	public static byte read(InputStream in) throws IOException {
 		int i = in.read();
@@ -168,6 +168,30 @@ public class Util {
 		}
 	}
 	public static boolean isDebug() {
-		return false;
+		return true;
+	}
+	/**
+	 * Print a message to stdout if the program is in debug mode.
+	 * @param string
+	 */
+	public static void debug(String s) {
+		if (isDebug())
+			System.out.println(s);
+	}
+	public static void debugTrace(String s) {
+		if (isDebug()) {
+			StackTraceElement[] trace = new Throwable().getStackTrace();
+			StackTraceElement caller = trace[1];
+			System.out.print(caller.toString() + ": ");
+			System.out.println(s);
+		}
+	}
+	public static void debugTrace(Exception e) {
+		if (isDebug()) {
+			e.printStackTrace(System.err);
+		}
+	}
+	public static void println(String s) {
+		System.out.println(s);
 	}
 }

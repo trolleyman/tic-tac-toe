@@ -1,6 +1,8 @@
 package client;
 
 import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
@@ -20,14 +22,16 @@ import javax.swing.table.AbstractTableModel;
 
 import shared.Username;
 
-public class LobbyViewer implements LobbyListener, WindowListener {
+public class LobbyViewer implements LobbyListener {
 	private Lobby lobby;
-	private Object usersLock = new Object();
-	private ArrayList<Username> users;
+	private volatile Object usersLock = new Object();
+	private volatile ArrayList<Username> users;
 	private String[] columnNames = new String[] {"Username", "Address"};
 	private JTable table;
 	private AbstractTableModel tableModel;
 	private Client client;
+	private volatile JFrame frame;
+	private volatile boolean systemExit = true;
 	
 	@SuppressWarnings("serial")
 	private JPanel createTable() {
@@ -49,7 +53,7 @@ public class LobbyViewer implements LobbyListener, WindowListener {
 			
 			@Override
 			public int getColumnCount() {
-				return 2;
+				return 1;
 			}
 			
 			@Override
@@ -121,10 +125,30 @@ public class LobbyViewer implements LobbyListener, WindowListener {
 		lobby.addListener(this);
 		users = new ArrayList<Username>();
 		
-		JFrame frame = new JFrame("Tic-Tac-Toe lobby");
-		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-		frame.setSize(300, 300);
-		frame.addWindowListener(this);
+		frame = new JFrame("Tic-Tac-Toe Lobby");
+		frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+		frame.addWindowListener(new WindowListener() {
+			@Override
+			public void windowClosing(WindowEvent e) {
+				frame.dispose();
+				if (systemExit)
+					System.exit(0);
+			}
+			
+			@Override
+			public void windowOpened(WindowEvent e) {}
+			@Override
+			public void windowIconified(WindowEvent e) {}
+			@Override
+			public void windowDeiconified(WindowEvent e) {}
+			@Override
+			public void windowDeactivated(WindowEvent e) {}
+			@Override
+			public void windowActivated(WindowEvent e) {}
+			@Override
+			public void windowClosed(WindowEvent e) {}
+		});
+		frame.setSize(500, 600);
 		
 		JPanel mainPanel = new JPanel();
 		JPanel tablePanel = createTable();
@@ -136,7 +160,14 @@ public class LobbyViewer implements LobbyListener, WindowListener {
 		mainPanel.add(buttonPanel, BorderLayout.SOUTH);
 		
 		frame.add(mainPanel);
+		//frame.pack();
+	    frame.setLocationByPlatform(true);
 		frame.setVisible(true);
+	}
+	
+	public void close() {
+		systemExit = false;
+		frame.dispatchEvent(new WindowEvent(frame, WindowEvent.WINDOW_CLOSING));
 	}
 	
 	private void updateUsers() {
@@ -180,21 +211,10 @@ public class LobbyViewer implements LobbyListener, WindowListener {
 		updateUsers();
 	}
 
-	@Override
-	public void windowClosed(WindowEvent e) {
-		System.exit(0);
+	public Point getPosition() {
+		return frame.getLocationOnScreen();
 	}
-
-	@Override
-	public void windowClosing(WindowEvent e) {}
-	@Override
-	public void windowActivated(WindowEvent e) {}
-	@Override
-	public void windowDeactivated(WindowEvent e) {}
-	@Override
-	public void windowDeiconified(WindowEvent e) {}
-	@Override
-	public void windowIconified(WindowEvent e) {}
-	@Override
-	public void windowOpened(WindowEvent e) {}
+	public Dimension getSize() {
+		return frame.getSize();
+	}
 }

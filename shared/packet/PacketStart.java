@@ -4,7 +4,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 
@@ -18,11 +17,11 @@ public class PacketStart extends Packet {
 	
 	private GameStart start;
 	
-	public PacketStart(InputStream in) throws IOException, ProtocolException {
-		super(in);
+	public PacketStart(Packet p) throws ProtocolException, EOFException {
+		super(p);
 		try {
 			ByteBuffer buf = ByteBuffer.wrap(payload);
-			int n = buf.getInt(); // nxn sized tic-tac-toe. Should be GameState.GAME_SIZE
+			int n = buf.get() & 0xFF; // nxn sized tic-tac-toe. Should be GameState.GAME_SIZE
 			if (n != GameState.BOARD_SIZE) {
 				throw new ProtocolException("Wrong board size: " + n);
 			}
@@ -30,7 +29,7 @@ public class PacketStart extends Packet {
 			GameState state = new GameState();
 			for (int y = 0; y < n; y++)
 				for (int x = 0; x < n; x++)
-					state.setState(x, y, buf.getChar());
+					state.setState(x, y, buf.get() & 0xFF);
 			
 			boolean first = buf.get() == 0 ? false : true;
 			boolean cross = buf.get() == 0 ? false : true;
@@ -42,13 +41,14 @@ public class PacketStart extends Packet {
 	public PacketStart(Username from, Username to, GameStart start) {
 		super(Instruction.START, from, to);
 		this.start = start;
-		ByteArrayOutputStream baos = new ByteArrayOutputStream(GameState.BOARD_SIZE * GameState.BOARD_SIZE * Character.BYTES + Integer.BYTES + 2);
+		ByteArrayOutputStream baos = new ByteArrayOutputStream(
+			GameState.BOARD_SIZE * GameState.BOARD_SIZE * Short.BYTES + Short.BYTES + 2);
 		DataOutputStream os = new DataOutputStream(baos);
 		try {
-			os.writeInt(GameState.BOARD_SIZE);
+			os.writeByte(GameState.BOARD_SIZE);
 			for (int y = 0; y < GameState.BOARD_SIZE; y++)
 				for (int x = 0; x < GameState.BOARD_SIZE; x++)
-					os.writeChar(start.initState.getState(x, y));
+					os.writeByte(start.initState.getState(x, y));
 			
 			os.writeByte(start.first ? 1 : 0);
 			os.writeByte(start.cross ? 1 : 0);

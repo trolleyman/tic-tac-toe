@@ -10,6 +10,7 @@ public enum Instruction {
 	ACCEPT_JOIN_REQUST,
 	REJECT_JOIN_REQUEST,
 	START,
+	MOVE,
 	WAIT,
 	QUIT,
 }

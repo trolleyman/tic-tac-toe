@@ -9,23 +9,24 @@ import java.util.Arrays;
 import shared.Username;
 import shared.exception.ProtocolException;
 import shared.packet.Packet;
+import shared.packet.PacketErr;
 import shared.packet.PacketGetUsers;
 import shared.packet.PacketPutUsers;
 
 public class Lobby implements Runnable {
 	private Socket sock;
-	private ArrayList<Username> users;
+	private volatile ArrayList<Username> users;
 	private boolean running = true;
-	private ArrayList<LobbyListener> listeners;
+	private volatile ArrayList<LobbyListener> listeners;
 	private InetSocketAddress addr;
 	private Username me;
-	private Thread t;
+	private volatile Thread t;
 	
 	public Lobby(Username me, InetSocketAddress addr) throws IOException, ProtocolException {
 		this.me = me;
 		this.addr = addr;
 		connect();
-		this.listeners = new ArrayList<LobbyListener>();
+		listeners = new ArrayList<LobbyListener>();
 		updateUsers();
 		
 		t = new Thread(this, "Lobby Thread");
@@ -62,6 +63,9 @@ public class Lobby implements Runnable {
 				return;
 			}
 			p = Packet.readPacket(sock.getInputStream());
+			if (p instanceof PacketErr) {
+				throw new ProtocolException("Error: " + ((PacketErr) p).getError());
+			}
 		}
 		ArrayList<Username> us = new ArrayList<>(Arrays.asList(((PacketPutUsers) p).getUsers()));
 		us.remove(me);
@@ -85,15 +89,20 @@ public class Lobby implements Runnable {
 				}
 				
 				try {
-					Thread.sleep(100);
+					Thread.sleep(10000);
 				} catch (InterruptedException e) {
 					// Ignore
 				}
 			}
-		} catch (IOException e) {
-			
 		} catch (ProtocolException e) {
 			
+		} catch (IOException e) {
+			users = null;
+			synchronized (listeners) {
+				for (LobbyListener l : listeners)
+					l.usersChanged(users);
+			}
+			return;
 		} finally {
 			if (sock != null)
 				try {

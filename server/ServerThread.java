@@ -21,7 +21,7 @@ public class ServerThread extends Thread {
 	private Socket sock;
 	private boolean close;
 	private Username client;
-	private LinkedList<Packet> packetQueue;
+	private volatile LinkedList<Packet> packetQueue;
 	
 	public ServerThread(Socket _sock) {
 		super("ServerThread: " + Util.sockAddressToString(_sock));
@@ -45,8 +45,9 @@ public class ServerThread extends Thread {
 				if (sock.getInputStream().available() > 0) {
 					handlePacket(sock);
 				} else if (!packetQueue.isEmpty()) {
-					for (Packet packet : packetQueue) {
-						packet.send(sock.getOutputStream());
+					while (!packetQueue.isEmpty()) {
+						Packet p = packetQueue.pop();
+						p.send(sock.getOutputStream());
 					}
 				} else {
 					// 100 milliseconds in nanoseconds = 100_000_000
@@ -74,7 +75,7 @@ public class ServerThread extends Thread {
 			//e.printStackTrace(System.err);
 		} finally {
 			// Remove the nick from the list of connected users
-			if (client != null) {
+			if (client != null && !client.isNull()) {
 				System.out.println(client + " left.");
 				Server.unregisterUsername(client);
 			}
@@ -99,14 +100,9 @@ public class ServerThread extends Thread {
 			return;
 		}
 		sock.setSoTimeout(0);
-		
-		if (Util.isDebug()) {
-			String payloadMsg = "";
-			if (p.getPayload().length > 0)
-				payloadMsg = " - 0x" + Util.bytesToHex(p.getPayload());
-			System.out.println("Packet recieved from " + p.getFrom() + " to " + p.getTo()
-				+ ": " + p.getInstruction() + payloadMsg);
-		}
+	
+		Util.debug("Packet recieved from " + p.getFrom() + " to " + p.getTo()
+			+ ": " + p);
 		
 		Instruction i = p.getInstruction();
 		
@@ -121,23 +117,25 @@ public class ServerThread extends Thread {
 			return;
 		}
 		
-		if ((client == null || client.isNull()) && p.getFrom().isUser()) {
-			HashMap<Username, ServerThread> users = Server.getUsers();
-			synchronized (users) {
-				if (users.containsKey(p.getFrom())) {
-					(new PacketErr(Username.SERVER, p.getFrom(), "Username already taken: " + p.getFrom())).send(out);
-					return;
-				} else {
-					users.put(p.getFrom(), this);
+		if (client == null || client.isNull()) {
+			if (p.getFrom().isUser()) {
+				HashMap<Username, ServerThread> users = Server.getUsers();
+				synchronized (users) {
+					if (users.containsKey(p.getFrom())) {
+						(new PacketErr(Username.SERVER, p.getFrom(), "Username already taken: " + p.getFrom())).send(out);
+						return;
+					} else {
+						users.put(p.getFrom(), this);
+					}
 				}
+				client = p.getFrom();
+				Thread.currentThread().setName("ServerThread: " + client.toString());
+				System.out.println(client.getString() + " connected.");
+				Server.registerUsername(client, this);
 			}
-			client = p.getFrom();
-			Thread.currentThread().setName("ServerThread: " + client.toString());
-			System.out.println(client.getString() + " connected.");
-			Server.registerUsername(client, this);
 		}
 		
-		if (!(client == null)) {
+		if (!(client == null || client.isNull())) {
 			if (!p.getFrom().isNull() && !p.getFrom().equals(client)) {
 				(new PacketErr(Username.SERVER, p.getFrom(),
 						"Only " + client.getString() + " can send packets on this socket."
@@ -190,7 +188,7 @@ public class ServerThread extends Thread {
 		synchronized (packetQueue) {
 			packetQueue.push(p);
 		}
-		this.interrupt();
+		interrupt();
 	}
 
 }
