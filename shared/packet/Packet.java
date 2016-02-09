@@ -76,6 +76,8 @@ public class Packet {
 			return new PacketEcho(p);
 		case START:
 			return new PacketStart(p);
+		case MOVE:
+			return new PacketMove(p);
 		case GET_USERS:
 		case REQUEST_JOIN:
 		case ACCEPT_JOIN_REQUST:
@@ -96,6 +98,9 @@ public class Packet {
 	}
 	
 	public void send(OutputStream out) throws IOException {
+		if (getInstruction() != Instruction.WAIT) {
+			Util.debug("Sending packet from " + from + " to " + to + ": " + this);
+		}
 		out.write(toByteArray());
 	}
 	

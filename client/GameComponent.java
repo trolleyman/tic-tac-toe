@@ -3,32 +3,70 @@ package client;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 
 import javax.swing.JComponent;
+import javax.swing.JOptionPane;
 
 import shared.GameState;
 
 @SuppressWarnings("serial")
 public class GameComponent extends JComponent implements GameListener {
 	private GameState state;
-	public GameComponent(Game g) {
-		state = g.getGameState();
-		g.addGameListener(this);
+	private Game game;
+	private GameComponent ths;
+	
+	public GameComponent(Game game) {
+		ths = this;
+		this.game = game;
+		state = game.getGameState();
+		game.addGameListener(this);
 		//setSize(400, 400);
 		setPreferredSize(new Dimension(400, 400));
 		setMinimumSize(new Dimension(400, 400));
 		repaint();
+		addMouseListener(new MouseListener() {
+			@Override
+			public void mouseReleased(MouseEvent e) {}
+			@Override
+			public void mousePressed(MouseEvent e) {}
+			@Override
+			public void mouseExited(MouseEvent e) {}
+			@Override
+			public void mouseEntered(MouseEvent e) {}
+			
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				if (e.getClickCount() == 2) {
+					int size = Math.min(getWidth(), getHeight());
+					int tileSize = size / GameState.BOARD_SIZE;
+					
+					int x = e.getX() / tileSize;
+					int y = e.getY() / tileSize;
+					System.out.println("x:" + x + ", y:" + y);
+					if (game.getGameState().getState(x, y) != GameState.EMPTY) {
+						JOptionPane.showInternalMessageDialog(
+							ths, "Error: Non-empty tiles cannot be selected.",
+							"Tic-Tac-Toe Error", JOptionPane.ERROR_MESSAGE);
+						return;
+					}
+					game.move(x, y);
+				}
+			}
+		});
 	}
 	
 	@Override
-	public void paintComponent(Graphics g) {
-		Graphics2D g2 = (Graphics2D) g;
+	public void paintComponent(Graphics gx) {
+		Graphics2D g2 = (Graphics2D) gx;
 		int size = Math.min(getWidth(), getHeight());
 		int offset = 10;
 		int tileSize = size / GameState.BOARD_SIZE;
 		int xOrigin = 0;//getX();
 		int yOrigin = 0;//getY();
 		
+		state = game.getGameState();
 		for (int yTile = 0; yTile < GameState.BOARD_SIZE; yTile++) {
 			for (int xTile = 0; xTile < GameState.BOARD_SIZE; xTile++) {
 				int tile = state.getState(xTile, yTile);
@@ -67,12 +105,11 @@ public class GameComponent extends JComponent implements GameListener {
 
 	@Override
 	public void gameStateChanged(GameState newState) {
-		state = newState;
 		update();
 	}
 
 	@Override
 	public void gameEnded(boolean won) {
-		
+		update();
 	}
 }

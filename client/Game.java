@@ -108,24 +108,29 @@ public class Game {
 				// Wait for update
 				try {
 					synchronized (wait) {
+						Util.debugTrace("Waiting for event.");
 						wait.wait();
 					}
 				} catch (InterruptedException e) {
 					
 				}
 				// Send update
+				Util.debugTrace("Sending new state...");
 				(new PacketMove(me, opp, lastMove.x, lastMove.y)).send(sock.getOutputStream());
 				turn = !turn;
 			} else {
 				// Recieve update
+				Util.debugTrace("Recieving move...");
 				Packet p = Packet.readPacket(sock.getInputStream());
 				if (!(p instanceof PacketMove)) {
 					throw new IllegalInstructionException(p.getInstruction());
 				}
 				int x = ((PacketMove) p).getX();
 				int y = ((PacketMove) p).getY();
+				Util.debugTrace("Got move: " + x + ", " + y);
 				if (state.getState(x, y) != GameState.EMPTY) {
 					(new PacketErr(me, opp, "Pos at " + x + ", " + y + " is not empty")).send(sock.getOutputStream());
+					Util.debugTrace("Error: pos is not empty.");
 				}
 				state.setState(x, y, oppPiece);
 				turn = !turn;
@@ -159,7 +164,11 @@ public class Game {
 			lastMove.x = x;
 			lastMove.y = y;
 			state.setState(x, y, piece);
-			wait.notifyAll();
+			Util.debugTrace("Notifying main thread...");
+			synchronized (wait) {
+				wait.notifyAll();
+			}
+			Util.debugTrace("Notified.");
 			return true;
 		}
 	}

@@ -4,6 +4,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.LinkedList;
 
@@ -46,7 +47,7 @@ public class ServerThread extends Thread {
 					handlePacket(sock);
 				} else if (!packetQueue.isEmpty()) {
 					while (!packetQueue.isEmpty()) {
-						Packet p = packetQueue.pop();
+						Packet p = packetQueue.removeLast();
 						p.send(sock.getOutputStream());
 					}
 				} else {

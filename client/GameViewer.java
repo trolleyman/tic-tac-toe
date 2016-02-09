@@ -71,9 +71,8 @@ public class GameViewer implements GameListener {
 		systemExit  = false;
 		frame.dispatchEvent(new WindowEvent(frame, WindowEvent.WINDOW_CLOSING));
 	}
-
-	@Override
-	public void gameStateChanged(GameState s) {
+	
+	public void update() {
 		if (g.isTurn()) {
 			gameLabel.setText(base + ": " + "Please select a position.");
 		} else {
@@ -82,7 +81,12 @@ public class GameViewer implements GameListener {
 	}
 
 	@Override
+	public void gameStateChanged(GameState s) {
+		update();
+	}
+
+	@Override
 	public void gameEnded(boolean won) {
-		
+		update();
 	}
 }

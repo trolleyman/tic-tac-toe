@@ -5,6 +5,8 @@ import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.io.IOException;
@@ -26,7 +28,7 @@ public class LobbyViewer implements LobbyListener {
 	private Lobby lobby;
 	private volatile Object usersLock = new Object();
 	private volatile ArrayList<Username> users;
-	private String[] columnNames = new String[] {"Username", "Address"};
+	private String[] columnNames = new String[] {"Username", "Ping"};
 	private JTable table;
 	private AbstractTableModel tableModel;
 	private Client client;
@@ -34,7 +36,7 @@ public class LobbyViewer implements LobbyListener {
 	private volatile boolean systemExit = true;
 	
 	@SuppressWarnings("serial")
-	private JPanel createTable() {
+	private JPanel createTable(ActionListener challengeListener) {
 		JPanel panel = new JPanel();
 		
 		tableModel = new AbstractTableModel() {
@@ -63,6 +65,22 @@ public class LobbyViewer implements LobbyListener {
 		};
 		
 		table = new JTable(tableModel);
+		table.addMouseListener(new MouseListener() {
+			@Override
+			public void mouseEntered(MouseEvent e) {}
+			@Override
+			public void mouseExited(MouseEvent e) {}
+			@Override
+			public void mousePressed(MouseEvent e) {}
+			@Override
+			public void mouseReleased(MouseEvent e) {}
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				if (e.getClickCount() == 2) {
+					challengeListener.actionPerformed(new ActionEvent(e.getSource(), e.getID(), ""));
+				}
+			}
+		});
 		panel.setLayout(new BorderLayout());
 		panel.add(table.getTableHeader(), BorderLayout.NORTH);
 		panel.add(table, BorderLayout.CENTER);
@@ -71,7 +89,7 @@ public class LobbyViewer implements LobbyListener {
 		return panel;
 	}
 	
-	private JPanel createButtons() {
+	private JPanel createButtons(ActionListener challengeListener) {
 		JPanel panel = new JPanel();
 		panel.setLayout(new BorderLayout());
 		JButton refresh = new JButton("Refresh");
@@ -82,28 +100,7 @@ public class LobbyViewer implements LobbyListener {
 			}
 		});
 		JButton challenge = new JButton("Challenge");
-		challenge.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				if (client.isChallenging()) {
-					JOptionPane.showMessageDialog(null,
-							"Cannot challenge multiple people at once.", "Challenge Error", JOptionPane.ERROR_MESSAGE);
-					return;
-				}
-				int row = table.getSelectedRow();
-				if (row == -1) {
-					JOptionPane.showMessageDialog(null,
-							"No row selected.", "Challenge Error", JOptionPane.ERROR_MESSAGE);
-				} else {
-					try {
-						client.challenge(users.get(row));
-					} catch (IOException ex) {
-						JOptionPane.showMessageDialog(null,
-								"Connection to server lost: " + ex.getMessage(), "Challenge Error", JOptionPane.ERROR_MESSAGE);
-					}
-				}
-			}
-		});
+		challenge.addActionListener(challengeListener);
 		JButton exit = new JButton("Exit");
 		exit.addActionListener(new ActionListener() {
 			@Override
@@ -150,9 +147,32 @@ public class LobbyViewer implements LobbyListener {
 		});
 		frame.setSize(500, 600);
 		
+		ActionListener challengeListener = new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if (client.isChallenging()) {
+					JOptionPane.showMessageDialog(null,
+							"Cannot challenge multiple people at once.", "Challenge Error", JOptionPane.ERROR_MESSAGE);
+					return;
+				}
+				int row = table.getSelectedRow();
+				if (row == -1) {
+					JOptionPane.showMessageDialog(null,
+							"No row selected.", "Challenge Error", JOptionPane.ERROR_MESSAGE);
+				} else {
+					try {
+						client.challenge(users.get(row));
+					} catch (IOException ex) {
+						JOptionPane.showMessageDialog(null,
+								"Connection to server lost: " + ex.getMessage(), "Challenge Error", JOptionPane.ERROR_MESSAGE);
+					}
+				}
+			}
+		};
+		
 		JPanel mainPanel = new JPanel();
-		JPanel tablePanel = createTable();
-		JPanel buttonPanel = createButtons();
+		JPanel tablePanel = createTable(challengeListener);
+		JPanel buttonPanel = createButtons(challengeListener);
 		mainPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
 		mainPanel.setLayout(new BorderLayout());
 		mainPanel.add(tablePanel, BorderLayout.NORTH);
