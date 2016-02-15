@@ -5,3 +5,4 @@ authors = ["trolleyman <cgtrolley@gmail.com>"]
 
 [dependencies]
 gtk = { git = "https://github.com/gtk-rs/gtk.git" }
+byteorder = { git = "https://github.com/trolleyman/byteorder.git" }
