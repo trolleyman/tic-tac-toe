@@ -1,16 +1,22 @@
 extern crate gtk;
+extern crate gdk;
 extern crate byteorder as bo;
 
 use std::process::exit;
 use std::env;
+use std::mem;
 use std::io::{self, Write, ErrorKind};
 use std::net::TcpStream;
+use std::thread;
+use std::time::Duration;
 
 use user::Username;
+use gui::Gui;
 
 pub mod user;
 pub mod packet;
 pub mod connection;
+pub mod gui;
 
 pub fn usage_exit() -> ! {
 	let _ = writeln!(io::stderr(), "Usage: client.exe <nick> <port> <machine-name>");
@@ -65,6 +71,16 @@ impl ParsedArgs {
 	}
 }
 
+static mut gui_g: *mut Gui = 0 as *mut _;
+pub fn get_gui() -> &'static mut Gui {
+	unsafe {
+		if gui_g.is_null() {
+			panic!("GUI is null.");
+		}
+		return mem::transmute(gui_g);
+	}
+}
+
 fn main() {
 	let args = ParsedArgs::new();
 	// Try to connect to args.machine_name:args.port
@@ -90,5 +106,13 @@ fn main() {
 		},
 	}
 	
+	let mut gui = Gui::new();
+	unsafe {
+		gui_g = &mut gui as *mut _;
+	}
 	
+	while !get_gui().should_quit() {
+		gtk::main_iteration_do(false);
+		thread::sleep(Duration::from_millis(10));
+	}
 }

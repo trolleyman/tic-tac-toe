@@ -19,6 +19,13 @@ test = true
 bench = true
 doc = true
 
+[dependencies.gtk]
+git = "https://github.com/gtk-rs/gtk.git"
+version = "0.0.7"
+
+[dependencies.gdk]
+git = "https://github.com/gtk-rs/gdk.git"
+version = "0.3.0"
+
 [dependencies]
-gtk = { git = "https://github.com/gtk-rs/gtk.git" }
 byteorder = { git = "https://github.com/trolleyman/byteorder.git" }
