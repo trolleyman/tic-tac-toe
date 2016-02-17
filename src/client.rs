@@ -18,12 +18,12 @@ pub mod packet;
 pub mod connection;
 pub mod gui;
 
-pub fn usage_exit() -> ! {
+fn usage_exit() -> ! {
 	let _ = writeln!(io::stderr(), "Usage: client.exe <nick> <port> <machine-name>");
 	exit(1);
 }
 
-pub struct ParsedArgs {
+struct ParsedArgs {
 	nick: Username,
 	port: u16,
 	machine_name: String,

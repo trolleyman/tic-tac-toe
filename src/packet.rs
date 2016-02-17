@@ -105,17 +105,20 @@ impl Packet {
 }
 
 pub enum PacketType {
+	Heartbeat,
 	Hello(HelloPacket),
 }
 impl PacketType {
 	pub fn get_id(&self) -> u8 {
 		match self {
-			&PacketType::Hello(_) => 0
+			&PacketType::Heartbeat => 0,
+			&PacketType::Hello(_) => 1,
 		}
 	}
 	pub fn from_bytes(id: u8, payload: Vec<u8>) -> Option<PacketType> {
 		match id {
-			0 => Some(PacketType::Hello(match HelloPacket::from_bytes(payload) {
+			0 => Some(PacketType::Heartbeat),
+			1 => Some(PacketType::Hello(match HelloPacket::from_bytes(payload) {
 				Some(hp) => hp,
 				None => return None,
 			})),
@@ -124,7 +127,8 @@ impl PacketType {
 	}
 	pub fn as_bytes(&self) -> &[u8] {
 		match self {
-			&PacketType::Hello(ref hello) => hello.as_bytes()
+			&PacketType::Heartbeat => &[],
+			&PacketType::Hello(ref hello) => hello.as_bytes(),
 		}
 	}
 }

@@ -55,6 +55,7 @@ impl From<UsernameError> for io::Error {
 	}
 }
 
+#[derive(Clone)]
 pub struct Username {
 	nick: String,
 }
@@ -66,8 +67,12 @@ impl Username {
 		if nick.len() >= ::std::u8::MAX as usize {
 			return Err(UsernameError::new(&nick, UsernameErrorType::Length));
 		}
-		if nick.contains(|c: char| c.is_whitespace()) {
-			return Err(UsernameError::new(&nick, UsernameErrorType::Whitespace));
+		{
+			let mut chars = nick.chars();
+			chars.next();
+			if chars.as_str().contains(|c: char| c.is_whitespace()) {
+				return Err(UsernameError::new(&nick, UsernameErrorType::Whitespace));
+			}
 		}
 		Ok(Username {
 			nick: nick,
@@ -78,6 +83,19 @@ impl Username {
 			nick: " SERVER".into(),
 		}
 	}
+	pub fn is_server(&self) -> bool {
+		&self.nick == " SERVER"
+	}
+	
+	pub fn unknown() -> Username {
+		Username {
+			nick: " UNKN".into(),
+		}
+	}
+	pub fn is_unknown(&self) -> bool {
+		&self.nick == " UNKN"
+	}
+	
 	pub fn is_user(&self) -> bool {
 		!self.nick.starts_with(' ')
 	}
