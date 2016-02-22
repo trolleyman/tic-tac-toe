@@ -55,7 +55,7 @@ impl From<UsernameError> for io::Error {
 	}
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Username {
 	nick: String,
 }
@@ -117,5 +117,10 @@ impl Username {
 	}
 	pub fn bytes_len(&self) -> u8 {
 		self.nick.as_bytes().len() as u8
+	}
+}
+impl Display for Username {
+	fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+		f.write_str(&self.nick)
 	}
 }

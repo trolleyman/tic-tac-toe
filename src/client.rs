@@ -1,3 +1,4 @@
+#![feature(time2)]
 extern crate gtk;
 extern crate gdk;
 extern crate byteorder as bo;
@@ -8,10 +9,11 @@ use std::mem;
 use std::io::{self, Write, ErrorKind};
 use std::net::TcpStream;
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use user::Username;
 use gui::Gui;
+use packet::{Packet, PacketType};
 
 pub mod user;
 pub mod packet;
@@ -84,7 +86,7 @@ pub fn get_gui() -> &'static mut Gui {
 fn main() {
 	let args = ParsedArgs::new();
 	// Try to connect to args.machine_name:args.port
-	let stream = match TcpStream::connect((args.machine_name.as_str(), args.port)) {
+	let mut stream = match TcpStream::connect((args.machine_name.as_str(), args.port)) {
 		Ok(s) => s,
 		Err(e) => {
 			let _ = match e.kind() {
@@ -111,8 +113,15 @@ fn main() {
 		gui_g = &mut gui as *mut _;
 	}
 	
+	let dur = Duration::from_millis(100);
+	let mut last_heartbeat_sent = Instant::now() - dur;
 	while !get_gui().should_quit() {
 		gtk::main_iteration_do(false);
+		// Send Heartbeat Packet
+		if last_heartbeat_sent.elapsed() > dur {
+			last_heartbeat_sent = Instant::now();
+			Packet::new(Username::server(), args.nick.clone(), PacketType::Heartbeat).send(&mut stream);
+		}
 		thread::sleep(Duration::from_millis(10));
 	}
 }

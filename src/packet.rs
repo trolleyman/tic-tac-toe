@@ -1,10 +1,19 @@
-use std::io::{self, Read, Write, ErrorKind};
+use std::io::{self, Cursor, Read, Write, ErrorKind};
 use std::net::TcpStream;
 use std::time::Duration;
 
 use bo::{BigEndian, ReadBytesExt, WriteBytesExt};
 
 use user::Username;
+
+macro_rules! try_option {
+	( $x:expr ) => {
+		match $x {
+			Some(y) => y,
+			None    => return None,
+		}
+	}
+}
 
 pub struct Packet {
 	to: Username,
@@ -26,17 +35,21 @@ impl Packet {
 		Packet::new(to, Username::server(), payload)
 	}
 	
-	pub fn get_to(&self) -> &Username {
+	pub fn to(&self) -> &Username {
 		&self.to
 	}
-	pub fn get_from(&self) -> &Username {
+	pub fn from(&self) -> &Username {
 		&self.from
 	}
-	pub fn get_payload(&self) -> &PacketType {
+	pub fn payload(&self) -> &PacketType {
 		&self.payload
 	}
 	
 	pub fn send(&self, s: &mut TcpStream) -> io::Result<()> {
+		if self.payload != PacketType::Heartbeat {
+			println!("Sent packet {:?} to {} from {}", &self.payload, &self.to, &self.from);
+		}
+		
 		try!(s.write_u8(self.payload.get_id()));
 		try!(s.write_u8(self.to.bytes_len()));
 		try!(s.write_all(self.to.as_bytes()));
@@ -53,7 +66,7 @@ impl Packet {
 		try!(s.set_read_timeout(None));
 		Packet::recv(s)
 	}
-	/// Returns `Ok(None)` if the connection timed out.
+	/// Returns `Ok(None)` if the read timed out.
 	pub fn recieve_timeout(s: &mut TcpStream, timeout: Duration) -> io::Result<Option<Packet>> {
 		try!(s.set_read_timeout(Some(timeout)));
 		match Packet::recv(s) {
@@ -96,6 +109,10 @@ impl Packet {
 				io::ErrorKind::InvalidData, format!("Packet ID {} is invalid", id))),
 		};
 		
+		if ptype != PacketType::Heartbeat {
+			println!("Recv packet {:?} to {} from {}", &ptype, &to, &from);
+		}
+		
 		Ok(Packet{
 			to: to,
 			from: from,
@@ -104,23 +121,27 @@ impl Packet {
 	}
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub enum PacketType {
 	Heartbeat,
-	Hello(HelloPacket),
+	GetUsers,
+	PutUsers(PutUsersPacket),
 }
 impl PacketType {
 	pub fn get_id(&self) -> u8 {
 		match self {
 			&PacketType::Heartbeat => 0,
-			&PacketType::Hello(_) => 1,
+			&PacketType::GetUsers => 1,
+			&PacketType::PutUsers(_) => 2,
 		}
 	}
 	pub fn from_bytes(id: u8, payload: Vec<u8>) -> Option<PacketType> {
 		match id {
 			0 => Some(PacketType::Heartbeat),
-			1 => Some(PacketType::Hello(match HelloPacket::from_bytes(payload) {
-				Some(hp) => hp,
-				None => return None,
+			1 => Some(PacketType::GetUsers),
+			2 => Some(PacketType::PutUsers(match PutUsersPacket::from_bytes(payload) {
+				Some(p) => p,
+				None    => return None,
 			})),
 			_ => None
 		}
@@ -128,21 +149,59 @@ impl PacketType {
 	pub fn as_bytes(&self) -> &[u8] {
 		match self {
 			&PacketType::Heartbeat => &[],
-			&PacketType::Hello(ref hello) => hello.as_bytes(),
+			&PacketType::GetUsers => &[],
+			&PacketType::PutUsers(ref pu) => pu.as_bytes(),
 		}
 	}
 }
 
-pub struct HelloPacket {
+#[derive(Debug, PartialEq, Eq)]
+pub struct PutUsersPacket {
 	payload: Vec<u8>,
+	users: Vec<Username>,
 }
-impl HelloPacket {
-	fn from_bytes(payload: Vec<u8>) -> Option<HelloPacket> {
-		Some(HelloPacket{
+impl PutUsersPacket {
+	pub fn from_users(users: Vec<Username>) -> PutUsersPacket {
+		let mut payload = Vec::with_capacity(users.len() * 16);
+		let _ = payload.write_u16::<BigEndian>(users.len() as u16);
+		
+		for u in &users {
+			let _ = payload.write_u8(u.bytes_len());
+			let _ = payload.write_all(u.as_bytes());
+		}
+		
+		PutUsersPacket {
 			payload: payload,
+			users: users,
+		}
+	}
+	
+	pub fn from_bytes(payload: Vec<u8>) -> Option<PutUsersPacket> {
+		let mut rdr = Cursor::new(payload);
+		let users_len = try_option!(rdr.read_u16::<BigEndian>().ok());
+		let mut users = Vec::with_capacity(users_len as usize);
+		
+		for i in 0..users_len {
+			let user_len = try_option!(rdr.read_u8().ok());
+			let mut user_bytes = vec![0; user_len as usize];
+			try_option!(rdr.read_exact(&mut user_bytes).ok());
+			let user = match Username::from_bytes(user_bytes) {
+				Ok(u) => u,
+				_ => return None,
+			};
+			users.push(user);
+		}
+		
+		Some(PutUsersPacket {
+			payload: rdr.into_inner(),
+			users: users,
 		})
 	}
-	fn as_bytes(&self) -> &[u8] {
+	
+	pub fn as_bytes(&self) -> &[u8] {
 		&self.payload
+	}
+	pub fn users(&self) -> &[Username] {
+		&self.users
 	}
 }

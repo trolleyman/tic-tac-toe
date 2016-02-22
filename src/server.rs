@@ -4,7 +4,7 @@ extern crate gdk;
 extern crate byteorder as bo;
 
 use std::net::{TcpListener, TcpStream};
-use std::io::{self, Write};
+use std::io::{self, Write, ErrorKind};
 use std::thread;
 use std::env;
 use std::process::exit;
@@ -75,14 +75,54 @@ fn handle_client(mut stream: TcpStream) {
 	
 	let mut client = Username::unknown();
 	
-	loop {
-		match Packet::new(client.clone(), Username::server(), PacketType::Heartbeat).send(&mut stream) {
-			Ok(()) => {},
-			Err(e) => {
-				let _ = writeln!(io::stderr(), "Error occured sending packet to user: {}", e);
-				break;
-			},
+	match handle_packets(&mut stream, &mut client) {
+		Ok(()) => {},
+		Err(e) => println!("{:?} : {}", e.kind(), e),/*match e.kind() {
+			ErrorKind::ConectionReset => {}
+		}*/
+	}
+	
+	if client.is_user() {
+		match stream.peer_addr() {
+			Ok(addr) => println!("{} left. ({})", &client, &addr),
+			Err(_) => println!("{} left.", &client),
 		}
+	} else {
+		match stream.peer_addr() {
+			Ok(addr) => println!("Disconnected from {}", &addr),
+			Err(_) => {}
+		}
+	}
+}
+
+fn handle_packets(stream: &mut TcpStream, client: &mut Username) -> io::Result<()> {
+	loop {
+		match try!(Packet::recieve_timeout(stream, Duration::from_millis(1))) {
+			Some(p) => {
+				// Handle packet
+				try!(handle_packet(p, client));
+			},
+			None => {}
+		}
+		try!(Packet::new(client.clone(), Username::server(), PacketType::Heartbeat).send(stream));
 		thread::sleep(Duration::from_millis(100));
 	}
+}
+
+fn handle_packet(p: Packet, client: &mut Username) -> io::Result<()> {
+	if p.get_from().is_user() {
+		*client = p.get_from().clone();
+	}
+	
+	use PacketType::*;
+	
+	match p.payload() {
+		 => {},
+		&GetUsers => {
+			
+		},
+		&Heartbeat | &PutUsers(_) => {},
+	}
+	
+	Ok(())
 }
