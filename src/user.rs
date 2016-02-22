@@ -55,11 +55,13 @@ impl From<UsernameError> for io::Error {
 	}
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Username {
 	nick: String,
 }
 impl Username {
+	pub const SERVER_NAME: &'static str = " SERVER";
+	
 	pub fn new(nick: String) -> Result<Username, UsernameError> {
 		if nick.is_empty() {
 			return Err(UsernameError::new(&nick, UsernameErrorType::Empty));
@@ -67,33 +69,22 @@ impl Username {
 		if nick.len() >= ::std::u8::MAX as usize {
 			return Err(UsernameError::new(&nick, UsernameErrorType::Length));
 		}
-		{
-			let mut chars = nick.chars();
-			chars.next();
-			if chars.as_str().contains(|c: char| c.is_whitespace()) {
-				return Err(UsernameError::new(&nick, UsernameErrorType::Whitespace));
-			}
+		
+		if nick != Username::SERVER_NAME && nick.contains(|c: char| c.is_whitespace()) {
+			return Err(UsernameError::new(&nick, UsernameErrorType::Whitespace));
 		}
+		
 		Ok(Username {
 			nick: nick,
 		})
 	}
 	pub fn server() -> Username {
 		Username {
-			nick: " SERVER".into(),
+			nick: Username::SERVER_NAME.into(),
 		}
 	}
 	pub fn is_server(&self) -> bool {
-		&self.nick == " SERVER"
-	}
-	
-	pub fn unknown() -> Username {
-		Username {
-			nick: " UNKN".into(),
-		}
-	}
-	pub fn is_unknown(&self) -> bool {
-		&self.nick == " UNKN"
+		&self.nick == Username::SERVER_NAME
 	}
 	
 	pub fn is_user(&self) -> bool {

@@ -1,4 +1,4 @@
-#![feature(time2)]
+#![feature(time2, associated_consts)]
 extern crate gtk;
 extern crate gdk;
 extern crate byteorder as bo;
@@ -113,15 +113,54 @@ fn main() {
 		gui_g = &mut gui as *mut _;
 	}
 	
-	let dur = Duration::from_millis(100);
-	let mut last_heartbeat_sent = Instant::now() - dur;
+	let heartbeat_delay = Duration::from_millis(100);
+	let get_users_delay = Duration::from_millis(1000);
+	
+	let mut last_users_updated = Instant::now() - get_users_delay;
+	let mut last_heartbeat_sent = Instant::now() - heartbeat_delay;
+	
 	while !get_gui().should_quit() {
 		gtk::main_iteration_do(false);
+		
+		// Recieve packets
+		match match Packet::recieve_timeout(&mut stream, Duration::from_millis(1)) {
+			Ok(v) => v,
+			Err(e) => {
+				println!("Error: {}", e);
+				::get_gui().quit();
+				break;
+			},
+		} {
+			Some(p) => {
+				// Handle packet
+				handle_packet(p, &mut stream);
+			},
+			None => {}
+		}
+		
 		// Send Heartbeat Packet
-		if last_heartbeat_sent.elapsed() > dur {
+		if last_heartbeat_sent.elapsed() > heartbeat_delay {
 			last_heartbeat_sent = Instant::now();
-			Packet::new(Username::server(), args.nick.clone(), PacketType::Heartbeat).send(&mut stream);
+			let _ = Packet::new(Username::server(), args.nick.clone(), PacketType::Heartbeat).send(&mut stream);
+		}
+		if last_users_updated.elapsed() > get_users_delay {
+			last_users_updated = Instant::now();
+			let _ = Packet::new(Username::server(), args.nick.clone(), PacketType::GetUsers).send(&mut stream);
 		}
 		thread::sleep(Duration::from_millis(10));
+	}
+}
+
+fn handle_packet(p: Packet, _stream: &mut TcpStream) {
+	use packet::PacketType::*;
+	
+	match p.payload() {
+		&Heartbeat | &GetUsers => {},
+		
+		&Quit(ref p) => {
+			println!("Error: {}", p.msg());
+			::get_gui().quit()
+		},
+		&PutUsers(ref up) => ::get_gui().set_users(up.users().into()),
 	}
 }

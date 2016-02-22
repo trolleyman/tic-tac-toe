@@ -3,19 +3,23 @@ extern crate gtk;
 extern crate gdk;
 extern crate byteorder as bo;
 
-use std::net::{TcpListener, TcpStream};
-use std::io::{self, Write, ErrorKind};
-use std::thread;
+use std::net::TcpListener;
+use std::io::{self, Write};
 use std::env;
 use std::process::exit;
-use std::time::Duration;
+use std::collections::BTreeMap;
+use std::collections::btree_map::Entry::{Vacant};
+use std::sync::{Arc, Mutex};
 
-use packet::{Packet, PacketType};
+use packet::{Packet};
 use user::Username;
+use server_thread::ServerThread;
 
 pub mod user;
 pub mod packet;
 pub mod connection;
+
+pub mod server_thread;
 
 fn usage_exit() -> ! {
 	let _ = writeln!(io::stderr(), "Usage: server.exe <port>");
@@ -45,84 +49,66 @@ pub fn main() {
 	let port = parse_port();
 	println!("Opening socket on port {}.", port);
 	
-	let listener = match TcpListener::bind(("localhost", port)) {
-		Ok(l) => l,
-		Err(e) => {
-			println!("Could not open tcp listener on port {}: {}", port, e);
-			exit(1);
+	let server = Server::new(port);
+	server.run();
+}
+
+pub struct Server {
+	port: u16,
+	// Holds clients + their packet queues
+	clients: BTreeMap<Username, Vec<Packet>>,
+}
+impl Server {
+	pub fn new(port: u16) -> Server {
+		Server {
+			port: port,
+			clients: BTreeMap::new(),
 		}
-	};
+	}
 	
-	for stream in listener.incoming() {
-		match stream {
-			Ok(stream) => {
-				thread::spawn(move|| {
-					handle_client(stream);
-				});
-			}
+	pub fn run(self) {
+		let listener = match TcpListener::bind(("localhost", self.port)) {
+			Ok(l) => l,
 			Err(e) => {
-				let _ = writeln!(io::stderr(), "Error recieving incoming connection: {}", e);
+				println!("Could not open tcp listener on port {}: {}", self.port, e);
+				exit(1);
+			}
+		};
+		
+		let mutex = Mutex::new(self);
+		let arc = Arc::new(mutex);
+		
+		for stream in listener.incoming() {
+			match stream {
+				Ok(stream) => {
+					ServerThread::new(arc.clone(), stream);
+				}
+				Err(e) => {
+					let _ = writeln!(io::stderr(), "Error recieving incoming connection: {}", e);
+				}
 			}
 		}
 	}
-}
-
-fn handle_client(mut stream: TcpStream) {
-	match stream.peer_addr() {
-		Ok(addr) => println!("Connected to {}", &addr),
-		Err(_) => {}
+	
+	pub fn get_users(&mut self) -> Vec<Username> {
+		self.clients.keys().cloned().collect()
 	}
 	
-	let mut client = Username::unknown();
-	
-	match handle_packets(&mut stream, &mut client) {
-		Ok(()) => {},
-		Err(e) => println!("{:?} : {}", e.kind(), e),/*match e.kind() {
-			ErrorKind::ConectionReset => {}
-		}*/
-	}
-	
-	if client.is_user() {
-		match stream.peer_addr() {
-			Ok(addr) => println!("{} left. ({})", &client, &addr),
-			Err(_) => println!("{} left.", &client),
+	/// Adds a new client to the server
+	/// Returns Err if the client already exists
+	pub fn add_client(&mut self, client: Username) -> Result<(), ()> {
+		match self.clients.entry(client) {
+			Vacant(e) => { e.insert(Vec::new()); },
+			_ => return Err(()),
 		}
-	} else {
-		match stream.peer_addr() {
-			Ok(addr) => println!("Disconnected from {}", &addr),
-			Err(_) => {}
-		}
-	}
-}
-
-fn handle_packets(stream: &mut TcpStream, client: &mut Username) -> io::Result<()> {
-	loop {
-		match try!(Packet::recieve_timeout(stream, Duration::from_millis(1))) {
-			Some(p) => {
-				// Handle packet
-				try!(handle_packet(p, client));
-			},
-			None => {}
-		}
-		try!(Packet::new(client.clone(), Username::server(), PacketType::Heartbeat).send(stream));
-		thread::sleep(Duration::from_millis(100));
-	}
-}
-
-fn handle_packet(p: Packet, client: &mut Username) -> io::Result<()> {
-	if p.get_from().is_user() {
-		*client = p.get_from().clone();
+		Ok(())
 	}
 	
-	use PacketType::*;
-	
-	match p.payload() {
-		 => {},
-		&GetUsers => {
-			
-		},
-		&Heartbeat | &PutUsers(_) => {},
+	pub fn get_client_queue(&mut self, client: &Username) -> Option<&mut Vec<Packet>> {
+		self.clients.get_mut(client)
 	}
 	
-	Ok(())
+	pub fn remove_client(&mut self, client: &Username) {
+		self.clients.remove(client);
+	}
 }

@@ -1,4 +1,6 @@
 
+use user::Username;
+
 use gtk::prelude::*;
 use gtk::{Window, WindowType};
 use gdk;
@@ -7,6 +9,7 @@ pub struct Gui {
 	lobby: Window,
 	game: Window,
 	quit: bool,
+	users: Vec<Username>
 }
 
 impl Gui {
@@ -47,6 +50,7 @@ impl Gui {
 			lobby: lobby,
 			game: game,
 			quit: false,
+			users: Vec::new(),
 		}
 	}
 	
@@ -65,5 +69,9 @@ impl Gui {
 	}
 	pub fn should_quit(&self) -> bool {
 		self.quit
+	}
+	
+	pub fn set_users(&mut self, users: Vec<Username>) {
+		self.users = users;
 	}
 }

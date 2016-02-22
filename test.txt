@@ -1,0 +1,1452 @@
+   Compiling tic-tac-toe v0.1.0 (file:///S:/Dev/Rust/Projects/tic-tac-toe)
+#![feature(prelude_import)]
+#![no_std]
+#![feature(time2, associated_consts)]
+#[prelude_import]
+use std::prelude::v1::*;
+#[macro_use]
+extern crate std as std;
+extern crate gtk;
+extern crate gdk;
+extern crate byteorder as bo;
+use std::process::exit;
+use std::env;
+use std::mem;
+use std::io::{self, Write, ErrorKind};
+use std::net::TcpStream;
+use std::thread;
+use std::time::{Duration, Instant};
+use user::Username;
+use gui::Gui;
+use packet::{Packet, PacketType};
+pub mod user {
+    #[prelude_import]
+    use std::prelude::v1::*;
+    // Try to connect to args.machine_name:args.port
+    // Recieve packets
+    // Handle packet
+    // Send Heartbeat Packet
+    use std::io::{self, ErrorKind};
+    use std::fmt::{self, Formatter, Display};
+    use std::error::Error;
+    use std::string::FromUtf8Error;
+    use std::convert::{From};
+    use std::ffi::OsString;
+    pub enum UsernameErrorType {
+        Empty,
+        Whitespace,
+        Length,
+        Utf8(FromUtf8Error),
+        OsStr,
+    }
+    #[automatically_derived]
+    #[allow(unused_qualifications)]
+    impl ::std::fmt::Debug for UsernameErrorType {
+        fn fmt(&self, __arg_0: &mut ::std::fmt::Formatter)
+         -> ::std::fmt::Result {
+            match (&*self,) {
+                (&UsernameErrorType::Empty,) => {
+                    let mut builder = __arg_0.debug_tuple("Empty");
+                    builder.finish()
+                }
+                (&UsernameErrorType::Whitespace,) => {
+                    let mut builder = __arg_0.debug_tuple("Whitespace");
+                    builder.finish()
+                }
+                (&UsernameErrorType::Length,) => {
+                    let mut builder = __arg_0.debug_tuple("Length");
+                    builder.finish()
+                }
+                (&UsernameErrorType::Utf8(ref __self_0),) => {
+                    let mut builder = __arg_0.debug_tuple("Utf8");
+                    let _ = builder.field(&&(*__self_0));
+                    builder.finish()
+                }
+                (&UsernameErrorType::OsStr,) => {
+                    let mut builder = __arg_0.debug_tuple("OsStr");
+                    builder.finish()
+                }
+            }
+        }
+    }
+    pub struct UsernameError {
+        estr: String,
+        e: UsernameErrorType,
+    }
+    #[automatically_derived]
+    #[allow(unused_qualifications)]
+    impl ::std::fmt::Debug for UsernameError {
+        fn fmt(&self, __arg_0: &mut ::std::fmt::Formatter)
+         -> ::std::fmt::Result {
+            match *self {
+                UsernameError { estr: ref __self_0_0, e: ref __self_0_1 } => {
+                    let mut builder = __arg_0.debug_struct("UsernameError");
+                    let _ = builder.field("estr", &&(*__self_0_0));
+                    let _ = builder.field("e", &&(*__self_0_1));
+                    builder.finish()
+                }
+            }
+        }
+    }
+    impl UsernameError {
+        pub fn new(nick: &str, e: UsernameErrorType) -> UsernameError {
+            UsernameError{estr:
+                              String::from(match &e {
+                                               &UsernameErrorType::Empty =>
+                                               ::std::fmt::format(::std::fmt::Arguments::new_v1({
+                                                                                                    static __STATIC_FMTSTR:
+                                                                                                           &'static [&'static str]
+                                                                                                           =
+                                                                                                        &["Invalid username: Username is empty"];
+                                                                                                    __STATIC_FMTSTR
+                                                                                                },
+                                                                                                &match ()
+                                                                                                     {
+                                                                                                     ()
+                                                                                                     =>
+                                                                                                     [],
+                                                                                                 })),
+                                               &UsernameErrorType::Whitespace
+                                               =>
+                                               ::std::fmt::format(::std::fmt::Arguments::new_v1({
+                                                                                                    static __STATIC_FMTSTR:
+                                                                                                           &'static [&'static str]
+                                                                                                           =
+                                                                                                        &["Invalid username: Username \'",
+                                                                                                          "\' contains whitespace"];
+                                                                                                    __STATIC_FMTSTR
+                                                                                                },
+                                                                                                &match (&nick,)
+                                                                                                     {
+                                                                                                     (__arg0,)
+                                                                                                     =>
+                                                                                                     [::std::fmt::ArgumentV1::new(__arg0,
+                                                                                                                                  ::std::fmt::Display::fmt)],
+                                                                                                 })),
+                                               &UsernameErrorType::Length =>
+                                               ::std::fmt::format(::std::fmt::Arguments::new_v1({
+                                                                                                    static __STATIC_FMTSTR:
+                                                                                                           &'static [&'static str]
+                                                                                                           =
+                                                                                                        &["Invalid username: Username \'",
+                                                                                                          "\' is too long"];
+                                                                                                    __STATIC_FMTSTR
+                                                                                                },
+                                                                                                &match (&nick,)
+                                                                                                     {
+                                                                                                     (__arg0,)
+                                                                                                     =>
+                                                                                                     [::std::fmt::ArgumentV1::new(__arg0,
+                                                                                                                                  ::std::fmt::Display::fmt)],
+                                                                                                 })),
+                                               &UsernameErrorType::Utf8(_) =>
+                                               ::std::fmt::format(::std::fmt::Arguments::new_v1({
+                                                                                                    static __STATIC_FMTSTR:
+                                                                                                           &'static [&'static str]
+                                                                                                           =
+                                                                                                        &["Invalid username: Username is not valid utf8: \'",
+                                                                                                          "\'"];
+                                                                                                    __STATIC_FMTSTR
+                                                                                                },
+                                                                                                &match (&nick,)
+                                                                                                     {
+                                                                                                     (__arg0,)
+                                                                                                     =>
+                                                                                                     [::std::fmt::ArgumentV1::new(__arg0,
+                                                                                                                                  ::std::fmt::Display::fmt)],
+                                                                                                 })),
+                                               &UsernameErrorType::OsStr =>
+                                               ::std::fmt::format(::std::fmt::Arguments::new_v1({
+                                                                                                    static __STATIC_FMTSTR:
+                                                                                                           &'static [&'static str]
+                                                                                                           =
+                                                                                                        &["Invalid username: Username is not valid utf8: \'",
+                                                                                                          "\'"];
+                                                                                                    __STATIC_FMTSTR
+                                                                                                },
+                                                                                                &match (&nick,)
+                                                                                                     {
+                                                                                                     (__arg0,)
+                                                                                                     =>
+                                                                                                     [::std::fmt::ArgumentV1::new(__arg0,
+                                                                                                                                  ::std::fmt::Display::fmt)],
+                                                                                                 })),
+                                           }),
+                          e: e,}
+        }
+    }
+    impl Display for UsernameError {
+        fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+            match f.write_str(&self.estr) {
+                ::std::result::Result::Ok(val) => val,
+                ::std::result::Result::Err(err) => {
+                    return ::std::result::Result::Err(::std::convert::From::from(err))
+                }
+            };
+            Ok(())
+        }
+    }
+    impl Error for UsernameError {
+        fn description(&self) -> &str { &self.estr }
+        fn cause(&self) -> Option<&Error> {
+            match &self.e {
+                &UsernameErrorType::Utf8(ref e) => Some(e),
+                _ => None,
+            }
+        }
+    }
+    impl From<UsernameError> for io::Error {
+        fn from(e: UsernameError) -> io::Error {
+            io::Error::new(ErrorKind::InvalidData, e)
+        }
+    }
+    pub struct Username {
+        nick: String,
+    }
+    #[automatically_derived]
+    #[allow(unused_qualifications)]
+    impl ::std::cmp::Ord for Username {
+        #[inline]
+        fn cmp(&self, __arg_0: &Username) -> ::std::cmp::Ordering {
+            match *__arg_0 {
+                Username { nick: ref __self_1_0 } =>
+                match *self {
+                    Username { nick: ref __self_0_0 } => {
+                        let __test =
+                            ::std::cmp::Ord::cmp(&(*__self_0_0),
+                                                 &(*__self_1_0));
+                        if __test == ::std::cmp::Ordering::Equal {
+                            ::std::cmp::Ordering::Equal
+                        } else { __test }
+                    }
+                },
+            }
+        }
+    }
+    #[automatically_derived]
+    #[allow(unused_qualifications)]
+    impl ::std::cmp::PartialOrd for Username {
+        #[inline]
+        fn partial_cmp(&self, __arg_0: &Username)
+         -> ::std::option::Option<::std::cmp::Ordering> {
+            match *__arg_0 {
+                Username { nick: ref __self_1_0 } =>
+                match *self {
+                    Username { nick: ref __self_0_0 } => {
+                        let __test =
+                            ::std::cmp::PartialOrd::partial_cmp(&(*__self_0_0),
+                                                                &(*__self_1_0));
+                        if __test ==
+                               ::std::option::Option::Some(::std::cmp::Ordering::Equal)
+                           {
+                            ::std::option::Option::Some(::std::cmp::Ordering::Equal)
+                        } else { __test }
+                    }
+                },
+            }
+        }
+        #[inline]
+        fn lt(&self, __arg_0: &Username) -> bool {
+            match *__arg_0 {
+                Username { nick: ref __self_1_0 } =>
+                match *self {
+                    Username { nick: ref __self_0_0 } =>
+                    (*__self_0_0) < (*__self_1_0) ||
+                        !((*__self_1_0) < (*__self_0_0)) && false,
+                },
+            }
+        }
+        #[inline]
+        fn le(&self, __arg_0: &Username) -> bool {
+            match *__arg_0 {
+                Username { nick: ref __self_1_0 } =>
+                match *self {
+                    Username { nick: ref __self_0_0 } =>
+                    (*__self_0_0) < (*__self_1_0) ||
+                        !((*__self_1_0) < (*__self_0_0)) && true,
+                },
+            }
+        }
+        #[inline]
+        fn gt(&self, __arg_0: &Username) -> bool {
+            match *__arg_0 {
+                Username { nick: ref __self_1_0 } =>
+                match *self {
+                    Username { nick: ref __self_0_0 } =>
+                    (*__self_0_0) > (*__self_1_0) ||
+                        !((*__self_1_0) > (*__self_0_0)) && false,
+                },
+            }
+        }
+        #[inline]
+        fn ge(&self, __arg_0: &Username) -> bool {
+            match *__arg_0 {
+                Username { nick: ref __self_1_0 } =>
+                match *self {
+                    Username { nick: ref __self_0_0 } =>
+                    (*__self_0_0) > (*__self_1_0) ||
+                        !((*__self_1_0) > (*__self_0_0)) && true,
+                },
+            }
+        }
+    }
+    #[automatically_derived]
+    #[allow(unused_qualifications)]
+    impl ::std::cmp::Eq for Username {
+        #[inline]
+        #[doc(hidden)]
+        fn assert_receiver_is_total_eq(&self) -> () {
+            match *self {
+                Username { nick: ref __self_0_0 } => {
+                    (*__self_0_0).assert_receiver_is_total_eq();
+                }
+            }
+        }
+    }
+    #[automatically_derived]
+    #[allow(unused_qualifications)]
+    impl ::std::cmp::PartialEq for Username {
+        #[inline]
+        fn eq(&self, __arg_0: &Username) -> bool {
+            match *__arg_0 {
+                Username { nick: ref __self_1_0 } =>
+                match *self {
+                    Username { nick: ref __self_0_0 } =>
+                    true && (*__self_0_0) == (*__self_1_0),
+                },
+            }
+        }
+        #[inline]
+        fn ne(&self, __arg_0: &Username) -> bool {
+            match *__arg_0 {
+                Username { nick: ref __self_1_0 } =>
+                match *self {
+                    Username { nick: ref __self_0_0 } =>
+                    false || (*__self_0_0) != (*__self_1_0),
+                },
+            }
+        }
+    }
+    #[automatically_derived]
+    #[allow(unused_qualifications)]
+    impl ::std::clone::Clone for Username {
+        #[inline]
+        fn clone(&self) -> Username {
+            match *self {
+                Username { nick: ref __self_0_0 } =>
+                Username{nick: ::std::clone::Clone::clone(&(*__self_0_0)),},
+            }
+        }
+    }
+    #[automatically_derived]
+    #[allow(unused_qualifications)]
+    impl ::std::fmt::Debug for Username {
+        fn fmt(&self, __arg_0: &mut ::std::fmt::Formatter)
+         -> ::std::fmt::Result {
+            match *self {
+                Username { nick: ref __self_0_0 } => {
+                    let mut builder = __arg_0.debug_struct("Username");
+                    let _ = builder.field("nick", &&(*__self_0_0));
+                    builder.finish()
+                }
+            }
+        }
+    }
+    impl Username {
+        pub const
+        SERVER_NAME:
+        &'static str
+        =
+        " SERVER";
+        pub fn new(nick: String) -> Result<Username, UsernameError> {
+            if nick.is_empty() {
+                return Err(UsernameError::new(&nick,
+                                              UsernameErrorType::Empty));
+            }
+            if nick.len() >= (::std::u8::MAX as usize) {
+                return Err(UsernameError::new(&nick,
+                                              UsernameErrorType::Length));
+            }
+            if nick != Username::SERVER_NAME &&
+                   nick.contains(|c: char| c.is_whitespace()) {
+                return Err(UsernameError::new(&nick,
+                                              UsernameErrorType::Whitespace));
+            }
+            Ok(Username{nick: nick,})
+        }
+        pub fn server() -> Username {
+            Username{nick: Username::SERVER_NAME.into(),}
+        }
+        pub fn is_server(&self) -> bool {
+            &self.nick == Username::SERVER_NAME
+        }
+        pub fn is_user(&self) -> bool { !self.nick.starts_with(' ') }
+        pub fn from_os_str(s: OsString) -> Result<Username, UsernameError> {
+            match s.into_string() {
+                Ok(s) =>
+                Ok(match Username::new(s) {
+                       ::std::result::Result::Ok(val) => val,
+                       ::std::result::Result::Err(err) => {
+                           return ::std::result::Result::Err(::std::convert::From::from(err))
+                       }
+                   }),
+                Err(e) =>
+                Err(UsernameError::new(&e.to_string_lossy(),
+                                       UsernameErrorType::OsStr)),
+            }
+        }
+        pub fn from_bytes(bytes: Vec<u8>) -> Result<Username, UsernameError> {
+            match String::from_utf8(bytes.clone()) {
+                Ok(s) =>
+                Ok(match Username::new(s) {
+                       ::std::result::Result::Ok(val) => val,
+                       ::std::result::Result::Err(err) => {
+                           return ::std::result::Result::Err(::std::convert::From::from(err))
+                       }
+                   }),
+                Err(e) =>
+                Err(UsernameError::new(&String::from_utf8_lossy(&bytes),
+                                       UsernameErrorType::Utf8(e))),
+            }
+        }
+        pub fn as_bytes(&self) -> &[u8] { self.nick.as_bytes() }
+        pub fn bytes_len(&self) -> u8 { self.nick.as_bytes().len() as u8 }
+    }
+    impl Display for Username {
+        fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+            f.write_str(&self.nick)
+        }
+    }
+}
+pub mod packet {
+    #[prelude_import]
+    use std::prelude::v1::*;
+    use std::io::{self, Cursor, Read, Write, ErrorKind};
+    use std::net::TcpStream;
+    use std::time::Duration;
+    use bo::{BigEndian, ReadBytesExt, WriteBytesExt};
+    use user::Username;
+    pub struct Packet {
+        to: Username,
+        from: Username,
+        payload: PacketType,
+    }
+    impl Packet {
+        pub fn new(to: Username, from: Username, payload: PacketType)
+         -> Packet {
+            Packet{to: to, from: from, payload: payload,}
+        }
+        pub fn to_server(from: Username, payload: PacketType) -> Packet {
+            Packet::new(Username::server(), from, payload)
+        }
+        pub fn from_server(to: Username, payload: PacketType) -> Packet {
+            Packet::new(to, Username::server(), payload)
+        }
+        pub fn to(&self) -> &Username { &self.to }
+        pub fn from(&self) -> &Username { &self.from }
+        pub fn payload(&self) -> &PacketType { &self.payload }
+        pub fn send(&self, s: &mut TcpStream) -> io::Result<()> {
+            if self.payload != PacketType::Heartbeat {
+                ::std::io::_print(::std::fmt::Arguments::new_v1({
+                                                                    static __STATIC_FMTSTR:
+                                                                           &'static [&'static str]
+                                                                           =
+                                                                        &["Sent packet ",
+                                                                          " to ",
+                                                                          " from ",
+                                                                          "\n"];
+                                                                    __STATIC_FMTSTR
+                                                                },
+                                                                &match (&&self.payload,
+                                                                        &&self.to,
+                                                                        &&self.from)
+                                                                     {
+                                                                     (__arg0,
+                                                                      __arg1,
+                                                                      __arg2)
+                                                                     =>
+                                                                     [::std::fmt::ArgumentV1::new(__arg0,
+                                                                                                  ::std::fmt::Debug::fmt),
+                                                                      ::std::fmt::ArgumentV1::new(__arg1,
+                                                                                                  ::std::fmt::Display::fmt),
+                                                                      ::std::fmt::ArgumentV1::new(__arg2,
+                                                                                                  ::std::fmt::Display::fmt)],
+                                                                 }));
+            }
+            match s.write_u8(self.payload.get_id()) {
+                ::std::result::Result::Ok(val) => val,
+                ::std::result::Result::Err(err) => {
+                    return ::std::result::Result::Err(::std::convert::From::from(err))
+                }
+            };
+            match s.write_u8(self.to.bytes_len()) {
+                ::std::result::Result::Ok(val) => val,
+                ::std::result::Result::Err(err) => {
+                    return ::std::result::Result::Err(::std::convert::From::from(err))
+                }
+            };
+            match s.write_all(self.to.as_bytes()) {
+                ::std::result::Result::Ok(val) => val,
+                ::std::result::Result::Err(err) => {
+                    return ::std::result::Result::Err(::std::convert::From::from(err))
+                }
+            };
+            match s.write_u8(self.from.bytes_len()) {
+                ::std::result::Result::Ok(val) => val,
+                ::std::result::Result::Err(err) => {
+                    return ::std::result::Result::Err(::std::convert::From::from(err))
+                }
+            };
+            match s.write_all(self.from.as_bytes()) {
+                ::std::result::Result::Ok(val) => val,
+                ::std::result::Result::Err(err) => {
+                    return ::std::result::Result::Err(::std::convert::From::from(err))
+                }
+            };
+            let payload = self.payload.as_bytes();
+            match s.write_u16::<BigEndian>(payload.len() as u16) {
+                ::std::result::Result::Ok(val) => val,
+                ::std::result::Result::Err(err) => {
+                    return ::std::result::Result::Err(::std::convert::From::from(err))
+                }
+            };
+            match s.write_all(payload) {
+                ::std::result::Result::Ok(val) => val,
+                ::std::result::Result::Err(err) => {
+                    return ::std::result::Result::Err(::std::convert::From::from(err))
+                }
+            };
+            Ok(())
+        }
+        pub fn recieve(s: &mut TcpStream) -> io::Result<Packet> {
+            match s.set_read_timeout(None) {
+                ::std::result::Result::Ok(val) => val,
+                ::std::result::Result::Err(err) => {
+                    return ::std::result::Result::Err(::std::convert::From::from(err))
+                }
+            };
+            Packet::recv(s)
+        }
+        /// Returns `Ok(None)` if the read timed out.
+        pub fn recieve_timeout(s: &mut TcpStream, timeout: Duration)
+         -> io::Result<Option<Packet>> {
+            match s.set_read_timeout(Some(timeout)) {
+                ::std::result::Result::Ok(val) => val,
+                ::std::result::Result::Err(err) => {
+                    return ::std::result::Result::Err(::std::convert::From::from(err))
+                }
+            };
+            match Packet::recv(s) {
+                Ok(p) => Ok(Some(p)),
+                Err(ref e) if
+                e.kind() == ErrorKind::TimedOut ||
+                    e.kind() == ErrorKind::WouldBlock => {
+                    Ok(None)
+                }
+                Err(e) => Err(e),
+            }
+        }
+        fn recv(s: &mut TcpStream) -> io::Result<Packet> {
+            let id =
+                match s.read_u8() {
+                    ::std::result::Result::Ok(val) => val,
+                    ::std::result::Result::Err(err) => {
+                        return ::std::result::Result::Err(::std::convert::From::from(err))
+                    }
+                };
+            match Packet::recv_rest(s, id) {
+                Ok(p) => Ok(p),
+                Err(ref e) if
+                e.kind() == ErrorKind::TimedOut ||
+                    e.kind() == ErrorKind::WouldBlock =>
+                Err(io::Error::new(ErrorKind::UnexpectedEof,
+                                   "unexpected EOF")),
+                Err(e) => Err(e),
+            }
+        }
+        fn recv_rest(s: &mut TcpStream, id: u8) -> io::Result<Packet> {
+            let to_len =
+                match s.read_u8() {
+                    ::std::result::Result::Ok(val) => val,
+                    ::std::result::Result::Err(err) => {
+                        return ::std::result::Result::Err(::std::convert::From::from(err))
+                    }
+                };
+            let mut to_bytes = ::std::vec::from_elem(0, to_len as usize);
+            match s.read_exact(&mut to_bytes) {
+                ::std::result::Result::Ok(val) => val,
+                ::std::result::Result::Err(err) => {
+                    return ::std::result::Result::Err(::std::convert::From::from(err))
+                }
+            };
+            let to =
+                match Username::from_bytes(to_bytes) {
+                    ::std::result::Result::Ok(val) => val,
+                    ::std::result::Result::Err(err) => {
+                        return ::std::result::Result::Err(::std::convert::From::from(err))
+                    }
+                };
+            let from_len =
+                match s.read_u8() {
+                    ::std::result::Result::Ok(val) => val,
+                    ::std::result::Result::Err(err) => {
+                        return ::std::result::Result::Err(::std::convert::From::from(err))
+                    }
+                };
+            let mut from_bytes = ::std::vec::from_elem(0, from_len as usize);
+            match s.read_exact(&mut from_bytes) {
+                ::std::result::Result::Ok(val) => val,
+                ::std::result::Result::Err(err) => {
+                    return ::std::result::Result::Err(::std::convert::From::from(err))
+                }
+            };
+            let from =
+                match Username::from_bytes(from_bytes) {
+                    ::std::result::Result::Ok(val) => val,
+                    ::std::result::Result::Err(err) => {
+                        return ::std::result::Result::Err(::std::convert::From::from(err))
+                    }
+                };
+            let payload_len =
+                match s.read_u16::<BigEndian>() {
+                    ::std::result::Result::Ok(val) => val,
+                    ::std::result::Result::Err(err) => {
+                        return ::std::result::Result::Err(::std::convert::From::from(err))
+                    }
+                };
+            let mut payload = ::std::vec::from_elem(0, payload_len as usize);
+            match s.read_exact(&mut payload) {
+                ::std::result::Result::Ok(val) => val,
+                ::std::result::Result::Err(err) => {
+                    return ::std::result::Result::Err(::std::convert::From::from(err))
+                }
+            };
+            let ptype =
+                match PacketType::from_bytes(id, payload) {
+                    Some(p) => p,
+                    None =>
+                    return Err(io::Error::new(io::ErrorKind::InvalidData,
+                                              ::std::fmt::format(::std::fmt::Arguments::new_v1({
+                                                                                                   static __STATIC_FMTSTR:
+                                                                                                          &'static [&'static str]
+                                                                                                          =
+                                                                                                       &["Packet ID ",
+                                                                                                         " is invalid"];
+                                                                                                   __STATIC_FMTSTR
+                                                                                               },
+                                                                                               &match (&id,)
+                                                                                                    {
+                                                                                                    (__arg0,)
+                                                                                                    =>
+                                                                                                    [::std::fmt::ArgumentV1::new(__arg0,
+                                                                                                                                 ::std::fmt::Display::fmt)],
+                                                                                                })))),
+                };
+            if ptype != PacketType::Heartbeat {
+                ::std::io::_print(::std::fmt::Arguments::new_v1({
+                                                                    static __STATIC_FMTSTR:
+                                                                           &'static [&'static str]
+                                                                           =
+                                                                        &["Recv packet ",
+                                                                          " to ",
+                                                                          " from ",
+                                                                          "\n"];
+                                                                    __STATIC_FMTSTR
+                                                                },
+                                                                &match (&&ptype,
+                                                                        &&to,
+                                                                        &&from)
+                                                                     {
+                                                                     (__arg0,
+                                                                      __arg1,
+                                                                      __arg2)
+                                                                     =>
+                                                                     [::std::fmt::ArgumentV1::new(__arg0,
+                                                                                                  ::std::fmt::Debug::fmt),
+                                                                      ::std::fmt::ArgumentV1::new(__arg1,
+                                                                                                  ::std::fmt::Display::fmt),
+                                                                      ::std::fmt::ArgumentV1::new(__arg2,
+                                                                                                  ::std::fmt::Display::fmt)],
+                                                                 }));
+            }
+            Ok(Packet{to: to, from: from, payload: ptype,})
+        }
+    }
+    pub enum PacketType {
+        Quit(QuitPacket),
+        Heartbeat,
+        GetUsers,
+        PutUsers(PutUsersPacket),
+    }
+    #[automatically_derived]
+    #[allow(unused_qualifications)]
+    impl ::std::cmp::Eq for PacketType {
+        #[inline]
+        #[doc(hidden)]
+        fn assert_receiver_is_total_eq(&self) -> () {
+            match (&*self,) {
+                (&PacketType::Quit(ref __self_0),) => {
+                    (*__self_0).assert_receiver_is_total_eq();
+                }
+                (&PacketType::Heartbeat,) => { }
+                (&PacketType::GetUsers,) => { }
+                (&PacketType::PutUsers(ref __self_0),) => {
+                    (*__self_0).assert_receiver_is_total_eq();
+                }
+            }
+        }
+    }
+    #[automatically_derived]
+    #[allow(unused_qualifications)]
+    impl ::std::cmp::PartialEq for PacketType {
+        #[inline]
+        fn eq(&self, __arg_0: &PacketType) -> bool {
+            {
+                let __self_vi =
+                    unsafe { ::std::intrinsics::discriminant_value(&*self) }
+                        as i32;
+                let __arg_1_vi =
+                    unsafe {
+                        ::std::intrinsics::discriminant_value(&*__arg_0)
+                    } as i32;
+                if true && __self_vi == __arg_1_vi {
+                    match (&*self, &*__arg_0) {
+                        (&PacketType::Quit(ref __self_0),
+                         &PacketType::Quit(ref __arg_1_0)) =>
+                        true && (*__self_0) == (*__arg_1_0),
+                        (&PacketType::Heartbeat, &PacketType::Heartbeat) =>
+                        true,
+                        (&PacketType::GetUsers, &PacketType::GetUsers) =>
+                        true,
+                        (&PacketType::PutUsers(ref __self_0),
+                         &PacketType::PutUsers(ref __arg_1_0)) =>
+                        true && (*__self_0) == (*__arg_1_0),
+                        _ => unsafe { ::std::intrinsics::unreachable() }
+                    }
+                } else { false }
+            }
+        }
+        #[inline]
+        fn ne(&self, __arg_0: &PacketType) -> bool {
+            {
+                let __self_vi =
+                    unsafe { ::std::intrinsics::discriminant_value(&*self) }
+                        as i32;
+                let __arg_1_vi =
+                    unsafe {
+                        ::std::intrinsics::discriminant_value(&*__arg_0)
+                    } as i32;
+                if true && __self_vi == __arg_1_vi {
+                    match (&*self, &*__arg_0) {
+                        (&PacketType::Quit(ref __self_0),
+                         &PacketType::Quit(ref __arg_1_0)) =>
+                        false || (*__self_0) != (*__arg_1_0),
+                        (&PacketType::Heartbeat, &PacketType::Heartbeat) =>
+                        false,
+                        (&PacketType::GetUsers, &PacketType::GetUsers) =>
+                        false,
+                        (&PacketType::PutUsers(ref __self_0),
+                         &PacketType::PutUsers(ref __arg_1_0)) =>
+                        false || (*__self_0) != (*__arg_1_0),
+                        _ => unsafe { ::std::intrinsics::unreachable() }
+                    }
+                } else { true }
+            }
+        }
+    }
+    #[automatically_derived]
+    #[allow(unused_qualifications)]
+    impl ::std::fmt::Debug for PacketType {
+        fn fmt(&self, __arg_0: &mut ::std::fmt::Formatter)
+         -> ::std::fmt::Result {
+            match (&*self,) {
+                (&PacketType::Quit(ref __self_0),) => {
+                    let mut builder = __arg_0.debug_tuple("Quit");
+                    let _ = builder.field(&&(*__self_0));
+                    builder.finish()
+                }
+                (&PacketType::Heartbeat,) => {
+                    let mut builder = __arg_0.debug_tuple("Heartbeat");
+                    builder.finish()
+                }
+                (&PacketType::GetUsers,) => {
+                    let mut builder = __arg_0.debug_tuple("GetUsers");
+                    builder.finish()
+                }
+                (&PacketType::PutUsers(ref __self_0),) => {
+                    let mut builder = __arg_0.debug_tuple("PutUsers");
+                    let _ = builder.field(&&(*__self_0));
+                    builder.finish()
+                }
+            }
+        }
+    }
+    impl PacketType {
+        pub fn get_id(&self) -> u8 {
+            match self {
+                &PacketType::Quit(_) => 0,
+                &PacketType::Heartbeat => 1,
+                &PacketType::GetUsers => 2,
+                &PacketType::PutUsers(_) => 3,
+            }
+        }
+        pub fn from_bytes(id: u8, payload: Vec<u8>) -> Option<PacketType> {
+            match id {
+                0 => Some(PacketType::Quit(QuitPacket::from_bytes(payload))),
+                1 => Some(PacketType::Heartbeat),
+                2 => Some(PacketType::GetUsers),
+                3 =>
+                Some(PacketType::PutUsers(match PutUsersPacket::from_bytes(payload)
+                                              {
+                                              Some(p) => p,
+                                              None => return None,
+                                          })),
+                _ => None,
+            }
+        }
+        pub fn as_bytes(&self) -> &[u8] {
+            match self {
+                &PacketType::Quit(ref qp) => qp.as_bytes(),
+                &PacketType::Heartbeat => &[],
+                &PacketType::GetUsers => &[],
+                &PacketType::PutUsers(ref pu) => pu.as_bytes(),
+            }
+        }
+    }
+    pub struct PutUsersPacket {
+        payload: Vec<u8>,
+        users: Vec<Username>,
+    }
+    #[automatically_derived]
+    #[allow(unused_qualifications)]
+    impl ::std::cmp::Eq for PutUsersPacket {
+        #[inline]
+        #[doc(hidden)]
+        fn assert_receiver_is_total_eq(&self) -> () {
+            match *self {
+                PutUsersPacket {
+                payload: ref __self_0_0, users: ref __self_0_1 } => {
+                    (*__self_0_0).assert_receiver_is_total_eq();
+                    (*__self_0_1).assert_receiver_is_total_eq();
+                }
+            }
+        }
+    }
+    #[automatically_derived]
+    #[allow(unused_qualifications)]
+    impl ::std::cmp::PartialEq for PutUsersPacket {
+        #[inline]
+        fn eq(&self, __arg_0: &PutUsersPacket) -> bool {
+            match *__arg_0 {
+                PutUsersPacket {
+                payload: ref __self_1_0, users: ref __self_1_1 } =>
+                match *self {
+                    PutUsersPacket {
+                    payload: ref __self_0_0, users: ref __self_0_1 } =>
+                    true && (*__self_0_0) == (*__self_1_0) &&
+                        (*__self_0_1) == (*__self_1_1),
+                },
+            }
+        }
+        #[inline]
+        fn ne(&self, __arg_0: &PutUsersPacket) -> bool {
+            match *__arg_0 {
+                PutUsersPacket {
+                payload: ref __self_1_0, users: ref __self_1_1 } =>
+                match *self {
+                    PutUsersPacket {
+                    payload: ref __self_0_0, users: ref __self_0_1 } =>
+                    false || (*__self_0_0) != (*__self_1_0) ||
+                        (*__self_0_1) != (*__self_1_1),
+                },
+            }
+        }
+    }
+    #[automatically_derived]
+    #[allow(unused_qualifications)]
+    impl ::std::fmt::Debug for PutUsersPacket {
+        fn fmt(&self, __arg_0: &mut ::std::fmt::Formatter)
+         -> ::std::fmt::Result {
+            match *self {
+                PutUsersPacket {
+                payload: ref __self_0_0, users: ref __self_0_1 } => {
+                    let mut builder = __arg_0.debug_struct("PutUsersPacket");
+                    let _ = builder.field("payload", &&(*__self_0_0));
+                    let _ = builder.field("users", &&(*__self_0_1));
+                    builder.finish()
+                }
+            }
+        }
+    }
+    impl PutUsersPacket {
+        pub fn from_users(users: Vec<Username>) -> PutUsersPacket {
+            let mut payload = Vec::with_capacity(users.len() * 16);
+            let _ = payload.write_u16::<BigEndian>(users.len() as u16);
+            for u in &users {
+                let _ = payload.write_u8(u.bytes_len());
+                let _ = payload.write_all(u.as_bytes());
+            }
+            PutUsersPacket{payload: payload, users: users,}
+        }
+        pub fn from_bytes(payload: Vec<u8>) -> Option<PutUsersPacket> {
+            let mut rdr = Cursor::new(payload);
+            let users_len =
+                match rdr.read_u16::<BigEndian>().ok() {
+                    Some(y) => y,
+                    None => return None,
+                };
+            let mut users = Vec::with_capacity(users_len as usize);
+            for _ in 0..users_len {
+                let user_len =
+                    match rdr.read_u8().ok() {
+                        Some(y) => y,
+                        None => return None,
+                    };
+                let mut user_bytes =
+                    ::std::vec::from_elem(0, user_len as usize);
+                match rdr.read_exact(&mut user_bytes).ok() {
+                    Some(y) => y,
+                    None => return None,
+                };
+                let user =
+                    match Username::from_bytes(user_bytes) {
+                        Ok(u) => u,
+                        _ => return None,
+                    };
+                users.push(user);
+            }
+            Some(PutUsersPacket{payload: rdr.into_inner(), users: users,})
+        }
+        pub fn as_bytes(&self) -> &[u8] { &self.payload }
+        pub fn users(&self) -> &[Username] { &self.users }
+    }
+    pub struct QuitPacket {
+        msg: String,
+    }
+    #[automatically_derived]
+    #[allow(unused_qualifications)]
+    impl ::std::cmp::Eq for QuitPacket {
+        #[inline]
+        #[doc(hidden)]
+        fn assert_receiver_is_total_eq(&self) -> () {
+            match *self {
+                QuitPacket { msg: ref __self_0_0 } => {
+                    (*__self_0_0).assert_receiver_is_total_eq();
+                }
+            }
+        }
+    }
+    #[automatically_derived]
+    #[allow(unused_qualifications)]
+    impl ::std::cmp::PartialEq for QuitPacket {
+        #[inline]
+        fn eq(&self, __arg_0: &QuitPacket) -> bool {
+            match *__arg_0 {
+                QuitPacket { msg: ref __self_1_0 } =>
+                match *self {
+                    QuitPacket { msg: ref __self_0_0 } =>
+                    true && (*__self_0_0) == (*__self_1_0),
+                },
+            }
+        }
+        #[inline]
+        fn ne(&self, __arg_0: &QuitPacket) -> bool {
+            match *__arg_0 {
+                QuitPacket { msg: ref __self_1_0 } =>
+                match *self {
+                    QuitPacket { msg: ref __self_0_0 } =>
+                    false || (*__self_0_0) != (*__self_1_0),
+                },
+            }
+        }
+    }
+    #[automatically_derived]
+    #[allow(unused_qualifications)]
+    impl ::std::fmt::Debug for QuitPacket {
+        fn fmt(&self, __arg_0: &mut ::std::fmt::Formatter)
+         -> ::std::fmt::Result {
+            match *self {
+                QuitPacket { msg: ref __self_0_0 } => {
+                    let mut builder = __arg_0.debug_struct("QuitPacket");
+                    let _ = builder.field("msg", &&(*__self_0_0));
+                    builder.finish()
+                }
+            }
+        }
+    }
+    impl QuitPacket {
+        pub fn new(msg: String) -> QuitPacket { QuitPacket{msg: msg,} }
+        pub fn from_bytes(payload: Vec<u8>) -> QuitPacket {
+            QuitPacket{msg: String::from_utf8_lossy(&payload).into_owned(),}
+        }
+        pub fn as_bytes(&self) -> &[u8] { self.msg.as_bytes() }
+        pub fn msg(&self) -> &str { &self.msg }
+    }
+}
+pub mod connection {
+    #[prelude_import]
+    use std::prelude::v1::*;
+    use std::ops::Deref;
+    use std::net::{TcpStream, ToSocketAddrs};
+    use std::io;
+    pub struct Connection {
+        stream: TcpStream,
+    }
+    impl Connection {
+        pub fn new<A: ToSocketAddrs>(addr: A) -> io::Result<Connection> {
+            match TcpStream::connect(addr) {
+                Ok(stream) => { Ok(Connection{stream: stream,}) }
+                Err(e) => { Err(e) }
+            }
+        }
+    }
+    impl Deref for Connection {
+        type
+        Target
+        =
+        TcpStream;
+        fn deref(&self) -> &TcpStream { &self.stream }
+    }
+}
+pub mod gui {
+    #[prelude_import]
+    use std::prelude::v1::*;
+    use user::Username;
+    use gtk::prelude::*;
+    use gtk::{Window, WindowType};
+    use gdk;
+    pub struct Gui {
+        lobby: Window,
+        game: Window,
+        quit: bool,
+        users: Vec<Username>,
+    }
+    impl Gui {
+        pub fn new() -> Gui {
+            let lobby = Window::new(WindowType::Toplevel);
+            lobby.set_title("Tic-Tac-Toe Lobby");
+            lobby.connect_destroy(|_| { ::get_gui().quit(); });
+            lobby.show_all();
+            let game = Window::new(WindowType::Toplevel);
+            game.set_title("Tic-Tac-Toe Game");
+            game.connect_destroy(|_| { ::get_gui().quit(); });
+            lobby.connect_key_press_event(|_, e| { let mut e2 = e.clone();
+                                          let key = e2.as_mut();
+                                          ::std::io::_print(::std::fmt::Arguments::new_v1_formatted({
+                                                                                                        static __STATIC_FMTSTR:
+                                                                                                               &'static [&'static str]
+                                                                                                               =
+                                                                                                            &["keypress: ",
+                                                                                                              " : ",
+                                                                                                              " : ",
+                                                                                                              "\n"];
+                                                                                                        __STATIC_FMTSTR
+                                                                                                    },
+                                                                                                    &match (&key.keyval,
+                                                                                                            &gdk::keyval_to_unicode(key.keyval).unwrap_or(' '),
+                                                                                                            &gdk::keyval_name(key.keyval).unwrap_or("".into()))
+                                                                                                         {
+                                                                                                         (__arg0,
+                                                                                                          __arg1,
+                                                                                                          __arg2)
+                                                                                                         =>
+                                                                                                         [::std::fmt::ArgumentV1::new(__arg0,
+                                                                                                                                      ::std::fmt::LowerHex::fmt),
+                                                                                                          ::std::fmt::ArgumentV1::new(__arg1,
+                                                                                                                                      ::std::fmt::Display::fmt),
+                                                                                                          ::std::fmt::ArgumentV1::new(__arg2,
+                                                                                                                                      ::std::fmt::Display::fmt)],
+                                                                                                     },
+                                                                                                    {
+                                                                                                        static __STATIC_FMTARGS:
+                                                                                                               &'static [::std::fmt::rt::v1::Argument]
+                                                                                                               =
+                                                                                                            &[::std::fmt::rt::v1::Argument{position:
+                                                                                                                                               ::std::fmt::rt::v1::Position::Next,
+                                                                                                                                           format:
+                                                                                                                                               ::std::fmt::rt::v1::FormatSpec{fill:
+                                                                                                                                                                                  ' ',
+                                                                                                                                                                              align:
+                                                                                                                                                                                  ::std::fmt::rt::v1::Alignment::Unknown,
+                                                                                                                                                                              flags:
+                                                                                                                                                                                  4u32,
+                                                                                                                                                                              precision:
+                                                                                                                                                                                  ::std::fmt::rt::v1::Count::Implied,
+                                                                                                                                                                              width:
+                                                                                                                                                                                  ::std::fmt::rt::v1::Count::Is(8usize),},},
+                                                                                                              ::std::fmt::rt::v1::Argument{position:
+                                                                                                                                               ::std::fmt::rt::v1::Position::Next,
+                                                                                                                                           format:
+                                                                                                                                               ::std::fmt::rt::v1::FormatSpec{fill:
+                                                                                                                                                                                  ' ',
+                                                                                                                                                                              align:
+                                                                                                                                                                                  ::std::fmt::rt::v1::Alignment::Unknown,
+                                                                                                                                                                              flags:
+                                                                                                                                                                                  0u32,
+                                                                                                                                                                              precision:
+                                                                                                                                                                                  ::std::fmt::rt::v1::Count::Implied,
+                                                                                                                                                                              width:
+                                                                                                                                                                                  ::std::fmt::rt::v1::Count::Implied,},},
+                                                                                                              ::std::fmt::rt::v1::Argument{position:
+                                                                                                                                               ::std::fmt::rt::v1::Position::Next,
+                                                                                                                                           format:
+                                                                                                                                               ::std::fmt::rt::v1::FormatSpec{fill:
+                                                                                                                                                                                  ' ',
+                                                                                                                                                                              align:
+                                                                                                                                                                                  ::std::fmt::rt::v1::Alignment::Unknown,
+                                                                                                                                                                              flags:
+                                                                                                                                                                                  0u32,
+                                                                                                                                                                              precision:
+                                                                                                                                                                                  :::Implied,
+d,},}];
+                                                                                                        __STATIC_FMTARGS
+                                                                                                    }));
+                                          Inhibit(false) });
+            game.connect_key_press_event(|_, e| { let mut e2 = e.clone();
+                                         let key = e2.as_mut();
+                                         ::std::io::_print(::std::fmt::Arguments::new_v1_formatted({
+                                                                                                       static __STATIC_FMTSTR:
+                                                                                                              &'static [&'static str]
+                                                                                                              =
+                                                                                                           &["keypress: ",
+                                                                                                             " : ",
+                                                                                                             " : ",
+                                                                                                             "\n"];
+                                                                                                       __STATIC_FMTSTR
+                                                                                                   },
+                                                                                                   &match (&key.keyval,
+                                                                                                           &gdk::keyval_to_unicode(key.keyval).unwrap_or(' '),
+                                                                                                           &gdk::keyval_name(key.keyval).unwrap_or("".into()))
+                                                                                                        {
+                                                                                                        (__arg0,
+                                                                                                         __arg1,
+                                                                                                         __arg2)
+                                                                                                        =>
+                                                                                                        [::std::fmt::ArgumentV1::new(__arg0,
+                                                                                                                                     ::std::fmt::LowerHex::fmt),
+                                                                                                         ::std::fmt::ArgumentV1::new(__arg1,
+                                                                                                                                     ::std::fmt::Display::fmt),
+                                                                                                         ::std::fmt::ArgumentV1::new(__arg2,
+                                                                                                                                     ::std::fmt::Display::fmt)],
+                                                                                                    },
+                                                                                                   {
+                                                                                                       static __STATIC_FMTARGS:
+                                                                                                              &'static [::std::fmt::rt::v1::Argument]
+                                                                                                              =
+                                                                                                           &[::std::fmt::rt::v1::Argument{position:
+                                                                                                                                              ::std::fmt::rt::v1::Position::Next,
+                                                                                                                                          format:
+                                                                                                                                              ::std::fmt::rt::v1::FormatSpec{fill:
+                                                                                                                                                                                 ' ',
+                                                                                                                                                                             align:
+                                                                                                                                                                                 ::std::fmt::rt::v1::Alignment::Unknown,
+                                                                                                                                                                             flags:
+                                                                                                                                                                                 4u32,
+                                                                                                                                                                             precision:
+                                                                                                                                                                                 ::std::fmt::rt::v1::Count::Implied,
+                                                                                                                                                                             width:
+                                                                                                                                                                                 ::std::fmt::rt::v1::Count::Is(8usize),},},
+                                                                                                             ::std::fmt::rt::v1::Argument{position:
+                                                                                                                                              ::std::fmt::rt::v1::Position::Next,
+                                                                                                                                          format:
+                                                                                                                                              ::std::fmt::rt::v1::FormatSpec{fill:
+                                                                                                                                                                                 ' ',
+                                                                                                                                                                             align:
+                                                                                                                                                                                 ::std::fmt::rt::v1::Alignment::Unknown,
+                                                                                                                                                                             flags:
+                                                                                                                                                                                 0u32,
+                                                                                                                                                                             precision:
+                                                                                                                                                                                 ::std::fmt::rt::v1::Count::Implied,
+                                                                                                                                                                             width:
+                                                                                                                                                                                 ::std::fmt::rt::v1::Count::Implied,},},
+                                                                                                             ::std::fmt::rt::v1::Argument{position:
+                                                                                                                                              ::std::fmt::rt::v1::Position::Next,
+                                                                                                                                          format:
+                                                                                                                                              ::std::fmt::rt::v1::FormatSpec{fill:
+                                                                                                                                                                                 ' ',
+                                                                                                                                                                             align:
+                                                                                                                                                                                 ::std::fmt::rt::v1::Alignment::Unknown,
+                                                                                                                                                                             flags:
+                                                                                                                                                                                 0u32,
+                                                                                                                                                                             precision:
+                                                                                                                                                                                 ::std::fmt::rt::v1::Count::Implied,
+                                                                                                                                                                             width:
+                                                                                                                                                                                 ::std::fmt::rt::v1::Count::Implied,},}];
+                                                                                                       __STATIC_FMTARGS
+                                                                                                   }));
+                                         Inhibit(false) });
+            Gui{lobby: lobby, game: game, quit: false, users: Vec::new(),}
+        }
+        pub fn show_lobby(&self) { self.game.hide(); self.lobby.show_all(); }
+        pub fn show_game(&self) { self.lobby.hide(); self.game.show_all(); }
+        pub fn quit(&mut self) {
+            ::std::io::_print(::std::fmt::Arguments::new_v1({
+                                                                static __STATIC_FMTSTR:
+                                                                       &'static [&'static str]
+                                                                       =
+                                                                    &["Quitting...\n"];
+                                                                __STATIC_FMTSTR
+                                                            },
+                                                            &match () {
+                                                                 () => [],
+                                                             }));
+            self.quit = true;
+        }
+        pub fn should_quit(&self) -> bool { self.quit }
+        pub fn set_users(&mut self, users: Vec<Username>) {
+            self.users = users;
+        }
+    }
+}
+fn usage_exit() -> !  {
+    let _ =
+        io::stderr().write_fmt(::std::fmt::Arguments::new_v1({
+                                                                 static __STATIC_FMTSTR:
+                                                                        &'static [&'static str]
+                                                                        =
+                                                                     &["Usage: client.exe <nick> <port> <machine-name>\n"];
+                                                                 __STATIC_FMTSTR
+                                                             },
+                                                             &match () {
+                                                                  () => [],
+                                                              }));
+    exit(1);
+}
+struct ParsedArgs {
+    nick: Username,
+    port: u16,
+    machine_name: String,
+}
+impl ParsedArgs {
+    pub fn new() -> ParsedArgs {
+        let mut args = env::args_os();
+        if args.len() != 4 {
+            let _ =
+                io::stderr().write_fmt(::std::fmt::Arguments::new_v1({
+       static __STATIC_FMTSTR:
+              &'static [&'static str]
+               =
+                           &["Error: Invalid number of arguments.\n"];
+             __STATIC_FMTSTR
+                                                                     },
+                    &match ()
+                                                                          {
+                                                                          ()
+                                                                          =>
+                                                                          [],
+                                                                      }));
+            usage_exit();
+        }
+        let _ = args.next();
+        let nick =
+            match Username::from_os_str(args.next().unwrap()) {
+                Ok(u) => u,
+                Err(e) => {
+                    let _ =
+                        io::stderr().write_fmt(::std::fmt::Arguments::new_v1({
+                                                                                 static __STATIC_FMTSTR:
+                                                                                        &'static [&'static str]
+                                                                                        =
+                                                                                     &["Error: ",
+                                                                                       "\n"];
+                                                                                 __STATIC_FMTSTR
+                                                                             },
+                                                                             &match (&e,)
+                                                                                  {
+                                                                                  (__arg0,)
+                                                                                  =>
+                                                                                  [::std::fmt::ArgumentV1::new(__arg0,
+                                                                                                               ::std::fmt::Display::fmt)],
+                                                                              }));
+                    usage_exit();
+                }
+            };
+        let port_os = args.next().unwrap();
+        let port =
+            match port_os.clone().into_string().map(|s|
+                                                        u16::from_str_radix(&s,
+                                                                            10))
+                {
+                Ok(Ok(u)) => u,
+                _ => {
+                    let _ =
+                        io::stderr().write_fmt(::std::fmt::Arguments::new_v1({
+                                                                                 static __STATIC_FMTSTR:
+                                                                                        &'static [&'static str]
+                                                                                        =
+                                                                                     &["Error: port \'",
+                                                                                       "\' is not valid.\n"];
+                                                                                 __STATIC_FMTSTR
+                                                                             },
+                                                                             &match (&port_os.to_string_lossy(),)
+                                                                                  {
+                                                                                  (__arg0,)
+                                                                                  =>
+                                                                                  [::std::fmt::ArgumentV1::new(__arg0,
+                                                                                                               ::std::fmt::Display::fmt)],
+                                                                              }));
+                    usage_exit();
+                }
+            };
+        let machine_name_os = args.next().unwrap();
+        let machine_name =
+            match machine_name_os.into_string() {
+                Ok(s) => s,
+                Err(os) => {
+                    let _ =
+                        io::stderr().write_fmt(::std::fmt::Arguments::new_v1({
+                                                                                 static __STATIC_FMTSTR:
+                                                                                        &'static [&'static str]
+                                                                                        =
+                                                                                     &["Error: Machine name \'",
+                                                                                       "\' is not a valid utf8 string\n"];
+                                                                                 __STATIC_FMTSTR
+                                                                             },
+                                                                             &match (&os.to_string_lossy(),)
+                                                                                  {
+                                                                                  (__arg0,)
+                                                                                  =>
+                                                                                  [::std::fmt::ArgumentV1::new(__arg0,
+                                                                                                               ::std::fmt::Display::fmt)],
+                                                                              }));
+                    usage_exit();
+                }
+            };
+        ParsedArgs{nick: nick, port: port, machine_name: machine_name,}
+    }
+}
+static mut gui_g: *mut Gui = 0 as *mut _;
+pub fn get_gui() -> &'static mut Gui {
+    unsafe {
+        if gui_g.is_null() {
+            {
+                ::std::rt::begin_unwind("GUI is null.",
+                                        {
+                                            static _FILE_LINE:
+                                                   (&'static str, u32) =
+                                                ("src\\client.rs", 80u32);
+                                            &_FILE_LINE
+                                        })
+            };
+        }
+        return mem::transmute(gui_g);
+    }
+}
+fn main() {
+    let args = ParsedArgs::new();
+    let mut stream =
+        match TcpStream::connect((args.machine_name.as_str(), args.port)) {
+            Ok(s) => s,
+            Err(e) => {
+                let _ =
+                    match e.kind() {
+                        ErrorKind::InvalidInput =>
+                        io::stderr().write_fmt(::std::fmt::Arguments::new_v1({
+                                                                                 static __STATIC_FMTSTR:
+                                                                                        &'static [&'static str]
+                                                                                        =
+                                                                                     &["Error: could not resolve \'",
+                                                                                       "\'\n"];
+                                                                                 __STATIC_FMTSTR
+                                                                             },
+                                                                             &match (&&args.machine_name,)
+                                                                                  {
+                                                                                  (__arg0,)
+                                                                                  =>
+                                                                                  [::std::fmt::ArgumentV1::new(__arg0,
+                                                                                                               ::std::fmt::Display::fmt)],
+                                                                              })),
+                        ErrorKind::ConnectionRefused =>
+                        io::stderr().write_fmt(::std::fmt::Arguments::new_v1({
+                                                                                 static __STATIC_FMTSTR:
+                                                                                        &'static [&'static str]
+                                                                                        =
+                                                                                     &["Error: connection refused on port ",
+                                                                                       "\n"];
+                                                                                 __STATIC_FMTSTR
+                                                                             },
+                                                                             &match (&args.port,)
+                                                                                  {
+                                                                                  (__arg0,)
+                                                                                  =>
+                                                                                  [::std::fmt::ArgumentV1::new(__arg0,
+                                                                                                               ::std::fmt::Display::fmt)],
+                                                                              })),
+                        _ =>
+                        io::stderr().write_fmt(::std::fmt::Arguments::new_v1({
+                                                                                 static __STATIC_FMTSTR:
+                                                                                        &'static [&'static str]
+                                                                                        =
+                                                                                     &["Error: ",
+                                                                                       "\n"];
+                                                                                 __STATIC_FMTSTR
+                                                                             },
+                                                                             &match (&e,)
+                                                                                  {
+                                                                                  (__arg0,)
+                                                                                  =>
+                                                                                  [::std::fmt::ArgumentV1::new(__arg0,
+                                                                                                               ::std::fmt::Display::fmt)],
+                                                                              })),
+                    };
+                exit(2);
+            }
+        };
+    match gtk::init() {
+        Ok(_) => {
+            ::std::io::_print(::std::fmt::Arguments::new_v1({
+                                                                static __STATIC_FMTSTR:
+                                                                       &'static [&'static str]
+                                                                       =
+                                                                    &["GTK initialized.\n"];
+                                                                __STATIC_FMTSTR
+                                                            },
+                                                            &match () {
+                                                                 () => [],
+                                                             }));
+        }
+        Err(_) => {
+            ::std::io::_print(::std::fmt::Arguments::new_v1({
+                                                                static __STATIC_FMTSTR:
+                                                                       &'static [&'static str]
+                                                                       =
+                                                                    &["Error: GTK could not be initialized.\n"];
+                                                                __STATIC_FMTSTR
+                                                            },
+                                                            &match () {
+                                                                 () => [],
+                                                             }));
+            exit(2);
+        }
+    }
+    let mut gui = Gui::new();
+    unsafe { gui_g = &mut gui as *mut _; }
+    let dur = Duration::from_millis(100);
+    let mut last_heartbeat_sent = Instant::now() - dur;
+    while !get_gui().should_quit() {
+        gtk::main_iteration_do(false);
+        match match Packet::recieve_timeout(&mut stream,
+                                            Duration::from_millis(1)) {
+                  ::std::result::Result::Ok(val) => val,
+                  ::std::result::Result::Err(err) => {
+                      return ::std::result::Result::Err(::std::convert::From::from(err))
+                  }
+              } {
+            Some(p) => { handle_packet(p, &mut stream); }
+            None => { }
+        }
+        if last_heartbeat_sent.elapsed() > dur {
+            last_heartbeat_sent = Instant::now();
+            Packet::new(Username::server(), args.nick.clone(),
+                        PacketType::Heartbeat).send(&mut stream);
+        }
+        thread::sleep(Duration::from_millis(10));
+    }
+}
+fn handle_packet(p: Packet, stream: &mut TcpStream) {
+    use packet::PacketType::*;
+    match p.payload() {
+        &Quit(ref p) => ::get_gui().quit(),
+        &PutUsers(ref up) => ::get_gui().set_users(up.users.into()),
+    }
+}

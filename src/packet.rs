@@ -123,6 +123,7 @@ impl Packet {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum PacketType {
+	Quit(QuitPacket),
 	Heartbeat,
 	GetUsers,
 	PutUsers(PutUsersPacket),
@@ -130,16 +131,18 @@ pub enum PacketType {
 impl PacketType {
 	pub fn get_id(&self) -> u8 {
 		match self {
-			&PacketType::Heartbeat => 0,
-			&PacketType::GetUsers => 1,
-			&PacketType::PutUsers(_) => 2,
+			&PacketType::Quit(_)     => 0,
+			&PacketType::Heartbeat   => 1,
+			&PacketType::GetUsers    => 2,
+			&PacketType::PutUsers(_) => 3,
 		}
 	}
 	pub fn from_bytes(id: u8, payload: Vec<u8>) -> Option<PacketType> {
 		match id {
-			0 => Some(PacketType::Heartbeat),
-			1 => Some(PacketType::GetUsers),
-			2 => Some(PacketType::PutUsers(match PutUsersPacket::from_bytes(payload) {
+			0 => Some(PacketType::Quit(QuitPacket::from_bytes(payload))),
+			1 => Some(PacketType::Heartbeat),
+			2 => Some(PacketType::GetUsers),
+			3 => Some(PacketType::PutUsers(match PutUsersPacket::from_bytes(payload) {
 				Some(p) => p,
 				None    => return None,
 			})),
@@ -148,6 +151,7 @@ impl PacketType {
 	}
 	pub fn as_bytes(&self) -> &[u8] {
 		match self {
+			&PacketType::Quit(ref qp) => qp.as_bytes(),
 			&PacketType::Heartbeat => &[],
 			&PacketType::GetUsers => &[],
 			&PacketType::PutUsers(ref pu) => pu.as_bytes(),
@@ -181,7 +185,7 @@ impl PutUsersPacket {
 		let users_len = try_option!(rdr.read_u16::<BigEndian>().ok());
 		let mut users = Vec::with_capacity(users_len as usize);
 		
-		for i in 0..users_len {
+		for _ in 0..users_len {
 			let user_len = try_option!(rdr.read_u8().ok());
 			let mut user_bytes = vec![0; user_len as usize];
 			try_option!(rdr.read_exact(&mut user_bytes).ok());
@@ -203,5 +207,29 @@ impl PutUsersPacket {
 	}
 	pub fn users(&self) -> &[Username] {
 		&self.users
+	}
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct QuitPacket {
+	msg: String,
+}
+impl QuitPacket {
+	pub fn new(msg: String) -> QuitPacket {
+		QuitPacket {
+			msg: msg,
+		}
+	}
+	pub fn from_bytes(payload: Vec<u8>) -> QuitPacket {
+		QuitPacket {
+			msg: String::from_utf8_lossy(&payload).into_owned(),
+		}
+	}
+	pub fn as_bytes(&self) -> &[u8] {
+		self.msg.as_bytes()
+	}
+	
+	pub fn msg(&self) -> &str {
+		&self.msg
 	}
 }
