@@ -103,6 +103,10 @@ impl Username {
 			Err(e) => Err(UsernameError::new(&String::from_utf8_lossy(&bytes), UsernameErrorType::Utf8(e))),
 		}
 	}
+	
+	pub fn name(&self) -> &str {
+		&self.nick
+	}
 	pub fn as_bytes(&self) -> &[u8] {
 		self.nick.as_bytes()
 	}

@@ -40,6 +40,11 @@ impl ServerThread {
 		}
 		
 		if let Some(client) = self.client {
+			{
+				let mut server = self.server.lock().unwrap();
+				server.remove_client(&client);
+			}
+			
 			if client.is_user() {
 				match self.stream.peer_addr() {
 					Ok(addr) => println!("{} left. ({})", &client, &addr),
@@ -57,6 +62,8 @@ impl ServerThread {
 				Err(_) => {}
 			}
 		}
+		
+		
 	}
 	
 	fn handle_packets(&mut self) -> io::Result<()> {
@@ -76,18 +83,24 @@ impl ServerThread {
 	}
 
 	fn handle_packet(&mut self, p: Packet) -> io::Result<()> {
+		use packet::PacketType::*;
+		use packet::QuitPacket;
+		
 		if self.client.is_none() {
 			self.client = Some(p.from().clone());
 			let mut server = self.server.lock().unwrap();
 			match server.add_client(p.from().clone()) {
-				Ok(())  => {},
+				Ok(())  => {
+					println!("{} joined.", p.from());
+				},
 				Err(()) => {
-					
+					self.client = None;
+					let err = format!("{} is already connected.", p.from());
+					let _ = Packet::new(p.from().clone(), Username::server(), Quit(QuitPacket::new(err.clone()))).send(&mut self.stream);
+					return Err(io::Error::new(ErrorKind::Other, err));
 				},
 			}
 		}
-		
-		use packet::PacketType::*;
 		
 		match p.payload() {
 			&Quit(ref qp) => {

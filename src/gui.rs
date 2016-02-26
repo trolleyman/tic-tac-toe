@@ -1,18 +1,32 @@
 
 use user::Username;
 
-use gtk::prelude::*;
-use gtk::{Window, WindowType};
-use gdk;
+//use gtk::prelude::*;
+//use gtk::{Window, WindowType};
+use gtk::*;
 
 pub struct Gui {
 	lobby: Window,
+	lobby_tree: TreeView,
+	lobby_store: ListStore,
+	
 	game: Window,
 	quit: bool,
 	users: Vec<Username>
 }
 
 impl Gui {
+	fn new_lobby() -> (TreeView, ListStore) {
+		let store = ListStore::new(&[Type::String]);
+		
+		let tree = TreeView::new_with_model(&store);
+		let user_col = TreeViewColumn::new();
+		user_col.set_title("User");
+		tree.append_column(&user_col);
+		
+		(tree, store)
+	}
+	
 	pub fn new() -> Gui {
 		let lobby = Window::new(WindowType::Toplevel);
 		lobby.set_title("Tic-Tac-Toe Lobby");
@@ -20,6 +34,8 @@ impl Gui {
 		lobby.connect_destroy(|_| {
 			::get_gui().quit();
 		});
+		let (lobby_tree, lobby_store) = Gui::new_lobby();
+		lobby.add(&lobby_tree);
 		lobby.show_all();
 		
 		let game = Window::new(WindowType::Toplevel);
@@ -29,25 +45,11 @@ impl Gui {
 			::get_gui().quit();
 		});
 		
-		lobby.connect_key_press_event(|_, e| {
-			let mut e2 = e.clone();
-			let key = e2.as_mut();
-			
-			println!("keypress: {:#8x} : {} : {}", key.keyval, gdk::keyval_to_unicode(key.keyval).unwrap_or(' '), gdk::keyval_name(key.keyval).unwrap_or("".into()));
-			
-			Inhibit(false)
-		});
-		game.connect_key_press_event(|_, e| {
-			let mut e2 = e.clone();
-			let key = e2.as_mut();
-			
-			println!("keypress: {:#8x} : {} : {}", key.keyval, gdk::keyval_to_unicode(key.keyval).unwrap_or(' '), gdk::keyval_name(key.keyval).unwrap_or("".into()));
-			
-			Inhibit(false)
-		});
-		
 		Gui {
 			lobby: lobby,
+			lobby_tree: lobby_tree,
+			lobby_store: lobby_store,
+			
 			game: game,
 			quit: false,
 			users: Vec::new(),
@@ -71,7 +73,16 @@ impl Gui {
 		self.quit
 	}
 	
+	fn update(&mut self) {
+		self.lobby_store.clear();
+		for user in &self.users {
+			self.lobby_store.set_value(&self.lobby_store.append(), 0, &Value::from(&String::from(user.name())));
+		}
+	}
+	
 	pub fn set_users(&mut self, users: Vec<Username>) {
+		println!("{:?}", users);
 		self.users = users;
+		self.update();
 	}
 }

@@ -47,7 +47,7 @@ impl Packet {
 	
 	pub fn send(&self, s: &mut TcpStream) -> io::Result<()> {
 		if self.payload != PacketType::Heartbeat {
-			println!("Sent packet {:?} to {} from {}", &self.payload, &self.to, &self.from);
+			//println!("Sent packet {:?} to {} from {}", &self.payload, &self.to, &self.from);
 		}
 		
 		try!(s.write_u8(self.payload.get_id()));
@@ -110,7 +110,7 @@ impl Packet {
 		};
 		
 		if ptype != PacketType::Heartbeat {
-			println!("Recv packet {:?} to {} from {}", &ptype, &to, &from);
+			//println!("Recv packet {:?} to {} from {}", &ptype, &to, &from);
 		}
 		
 		Ok(Packet{
