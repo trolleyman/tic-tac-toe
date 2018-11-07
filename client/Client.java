@@ -180,6 +180,7 @@ public class Client {
 		case ERR:
 			Util.debugTrace("Error: " + ((PacketErr) p).getError());
 			break;
+		case MOVE:
 		case OK:
 		case START:
 		case PUT_USERS:
