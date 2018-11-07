@@ -1,0 +1,31 @@
+[package]
+name = "tic-tac-toe"
+version = "0.1.0"
+authors = ["trolleyman <cgtrolley@gmail.com>"]
+
+[[bin]]
+name = "client"
+path = "src\\client.rs"
+
+test = true
+bench = true
+doc = true
+
+[[bin]]
+name = "server"
+path = "src\\server.rs"
+
+test = true
+bench = true
+doc = true
+
+[dependencies.gtk]
+git = "https://github.com/gtk-rs/gtk.git"
+version = "0.0.7"
+
+[dependencies.gdk]
+git = "https://github.com/gtk-rs/gdk.git"
+version = "0.3.0"
+
+[dependencies]
+byteorder = { git = "https://github.com/trolleyman/byteorder.git" }
